@@ -43,7 +43,7 @@
 
         .hud-left { justify-self: start; }
         .hud-center { justify-self: center; display: flex; gap: 1rem; }
-        .hud-right { justify-self: end; }
+        .hud-right { justify-self: end; display: flex; gap: 1rem; align-items: center; }
 
         .nav-btn {
             background: transparent;
@@ -168,19 +168,22 @@
             max-width: 600px;
         }
 
-        input[type="number"] {
+        #guess-input {
             width: 100%;
             max-width: 400px;
             background: #000;
-            border: 1px solid var(--accent-white);
+            border: 2px solid #222;
             color: white;
-            padding: 1rem;
-            font-size: 3rem;
+            padding: 1.5rem;
+            font-size: 4rem;
             text-align: center;
             outline: none;
             border-radius: var(--radius);
             font-family: 'JetBrains Mono', monospace;
-            -moz-appearance: textfield;
+        }
+
+        #guess-input:focus {
+            border-color: #444;
         }
 
         input::-webkit-outer-spin-button,
@@ -192,10 +195,10 @@
         .init-btn {
             width: 100%;
             max-width: 400px;
-            background: var(--accent-white);
-            color: black;
+            background: #111;
+            color: white;
             padding: 1.2rem;
-            border: none;
+            border: 1px solid #333;
             border-radius: var(--radius);
             font-weight: 800;
             font-size: 1.1rem;
@@ -206,7 +209,8 @@
         }
 
         .init-btn:hover {
-            opacity: 0.9;
+            background: #222;
+            border-color: #444;
             transform: translateY(-2px);
         }
 
@@ -228,6 +232,51 @@
 
         .coin-badge { border-color: rgba(255, 255, 255, 0.3); }
         .coin-badge span { font-weight: 900; }
+
+        /* AUTH & LEADERBOARD */
+        .auth-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .auth-input {
+            background: #000;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--radius);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .auth-input:focus {
+            border-color: var(--accent-white);
+        }
+
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .leader-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+        }
+
+        .leader-rank { font-weight: 900; color: var(--text-secondary); width: 30px; }
+        .leader-name { flex: 1; font-weight: 700; color: white; }
+        .leader-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-white); }
+        .leader-type { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; margin-left: 0.5rem; }
 
         /* GAME PASS TAB */
         .gamepass-list {
@@ -415,8 +464,10 @@
         <button class="nav-btn active" onclick="showTab('game')">Game</button>
         <button class="nav-btn" onclick="showTab('gamepass')">Game Pass</button>
         <button class="nav-btn" onclick="showTab('shop')">Shop</button>
+        <button class="nav-btn" onclick="showTab('leaderboard')">Leaderboard</button>
     </div>
     <div class="hud-right">
+        <button id="user-display" class="stat-badge" onclick="showAuth()" style="cursor: pointer;">LOGIN</button>
         <div class="stat-badge coin-badge">COINS: <span id="pts-val">0</span></div>
     </div>
 </nav>
@@ -430,7 +481,7 @@
                 <div class="round-timer" id="round-timer">00:00</div>
                 <button class="give-up-btn" onclick="giveUp()">Give Up</button>
             </div>
-            <input type="number" id="guess-input" placeholder="0000">
+            <input type="text" id="guess-input" placeholder="0000" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" spellcheck="false">
             <button class="init-btn" id="guess-btn">INITIATE GUESS</button>
             <div id="feedback" style="font-weight: 800; letter-spacing: 2px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">AWAITING INPUT</div>
         </div>
@@ -505,7 +556,7 @@
                 <div class="item-card">
                     <h3>REVEAL NUMBER</h3>
                     <p>Instantly shows you the hidden number.</p>
-                    <button class="buy-btn" onclick="revealNumber()" id="reveal-btn">REVEAL (2500)</button>
+                    <button class="buy-btn" onclick="revealNumber()" id="reveal-btn">REVEAL (67.000)</button>
                 </div>
             </div>
 
@@ -524,7 +575,43 @@
             </div>
         </div>
     </div>
+    <!-- LEADERBOARD TAB -->
+    <div id="leaderboard-tab" class="tab-content">
+        <div class="panel">
+            <div style="display: flex; gap: 2rem;">
+                <div style="flex: 1;">
+                    <h2 style="color: white; margin-top: 0; font-size: 1.2rem; margin-bottom: 1.5rem;">MOST WINS</h2>
+                    <div id="wins-leaderboard" class="leaderboard-list">
+                        <!-- Wins content -->
+                    </div>
+                </div>
+                <div style="flex: 1;">
+                    <h2 style="color: white; margin-top: 0; font-size: 1.2rem; margin-bottom: 1.5rem;">FASTEST TIMES</h2>
+                    <div id="time-leaderboard" class="leaderboard-list">
+                        <!-- Time content -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
+
+<!-- AUTH MODAL -->
+<div class="modal" id="auth-modal">
+    <div class="modal-content auth-container">
+        <h2 style="margin-bottom: 0.5rem;">ACCOUNT ACCESS</h2>
+        <p style="margin-bottom: 2rem; font-size: 0.8rem;">Enter credentials to save your progress.</p>
+        
+        <input type="text" id="auth-user" class="auth-input" placeholder="USERNAME">
+        <input type="password" id="auth-pass" class="auth-input" placeholder="PASSWORD (MIN. 6 CHARS)">
+        
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button class="init-btn" onclick="handleAuth('login')">LOGIN</button>
+            <button class="init-btn" onclick="handleAuth('register')" style="background: transparent; color: white; border: 1px solid white;">REGISTER</button>
+        </div>
+        <button class="give-up-btn" style="margin-top: 1.5rem; width: 100%;" onclick="closeAuth()">CANCEL</button>
+    </div>
+</div>
 
 <!-- WIN POPUP -->
 <div class="modal" id="win-modal">
@@ -536,7 +623,7 @@
 </div>
 
 <script>
-    let secretNumber, points = parseInt(localStorage.getItem('guess_points')) || 0;
+    let points = parseInt(localStorage.getItem('guess_points')) || 0;
     let wins = parseInt(localStorage.getItem('guess_wins')) || 0;
     let bestTime = localStorage.getItem('guess_best') ? parseInt(localStorage.getItem('guess_best')) : null;
     let items = JSON.parse(localStorage.getItem('guess_items')) || { double_pts: false, cheap_hints: false };
@@ -545,6 +632,8 @@
     let hintUsed = false;
     let roundSeconds = 0;
     let roundInterval;
+    let currentUser = localStorage.getItem('guess_user') || null;
+    let allUsers = JSON.parse(localStorage.getItem('guess_all_users')) || {};
 
     const els = {
         guessIn: document.getElementById('guess-input'),
@@ -554,9 +643,13 @@
         wins: document.getElementById('wins-val'),
         best: document.getElementById('best-val'),
         modal: document.getElementById('win-modal'),
+        authModal: document.getElementById('auth-modal'),
+        userDisplay: document.getElementById('user-display'),
         hintBtn: document.getElementById('hint-btn'),
         roundTimer: document.getElementById('round-timer'),
-        notif: document.getElementById('notification')
+        notif: document.getElementById('notification'),
+        winsLB: document.getElementById('wins-leaderboard'),
+        timeLB: document.getElementById('time-leaderboard')
     };
 
     function formatTime(totalSeconds) {
@@ -570,6 +663,75 @@
         els.notif.textContent = msg;
         els.notif.classList.add('active');
         setTimeout(() => els.notif.classList.remove('active'), 3000);
+    }
+
+    function showAuth() {
+        if (currentUser) {
+            if (confirm(`Logged in as ${currentUser}. Logout?`)) {
+                currentUser = null;
+                localStorage.removeItem('guess_user');
+                showNotification("LOGGED OUT");
+                updateUI();
+            }
+            return;
+        }
+        els.authModal.style.display = 'flex';
+    }
+
+    function closeAuth() {
+        els.authModal.style.display = 'none';
+    }
+
+    function handleAuth(type) {
+        const user = document.getElementById('auth-user').value.trim();
+        const pass = document.getElementById('auth-pass').value.trim();
+
+        if (user.length < 3) return showNotification("USERNAME TOO SHORT");
+        if (pass.length < 6) return showNotification("PASSWORD MIN. 6 CHARACTERS");
+
+        if (type === 'register') {
+            if (allUsers[user]) return showNotification("USER ALREADY EXISTS");
+            allUsers[user] = { pass, wins: 0, bestTime: null, points: 0, items: { double_pts: false, cheap_hints: false } };
+            showNotification("ACCOUNT CREATED! NOW LOGIN.");
+        } else {
+            if (!allUsers[user] || allUsers[user].pass !== pass) return showNotification("INVALID CREDENTIALS");
+            currentUser = user;
+            // Sync local stats with user profile
+            points = allUsers[user].points || 0;
+            wins = allUsers[user].wins || 0;
+            bestTime = allUsers[user].bestTime || null;
+            items = allUsers[user].items || { double_pts: false, cheap_hints: false };
+            
+            localStorage.setItem('guess_user', user);
+            showNotification(`WELCOME BACK, ${user.toUpperCase()}`);
+            closeAuth();
+            updateUI();
+        }
+        localStorage.setItem('guess_all_users', JSON.stringify(allUsers));
+    }
+
+    function updateLeaderboard() {
+        const usersArr = Object.entries(allUsers).map(([name, data]) => ({ name, ...data }));
+        
+        // Wins Leaderboard - Top 3, Min 1 Win
+        const topWins = [...usersArr].filter(u => u.wins > 0).sort((a, b) => b.wins - a.wins).slice(0, 3);
+        els.winsLB.innerHTML = topWins.map((u, i) => `
+            <div class="leader-item">
+                <span class="leader-rank">#${i + 1}</span>
+                <span class="leader-name">${u.name}</span>
+                <span class="leader-val">${u.wins} <span class="leader-type">WINS</span></span>
+            </div>
+        `).join('') || '<p style="color: gray; font-size: 0.8rem;">No data yet.</p>';
+
+        // Time Leaderboard - Top 3, Min 1 Win
+        const topTime = [...usersArr].filter(u => u.bestTime !== null && u.wins > 0).sort((a, b) => a.bestTime - b.bestTime).slice(0, 3);
+        els.timeLB.innerHTML = topTime.map((u, i) => `
+            <div class="leader-item">
+                <span class="leader-rank">#${i + 1}</span>
+                <span class="leader-name">${u.name}</span>
+                <span class="leader-val">${formatTime(u.bestTime)} <span class="leader-type">SEC</span></span>
+            </div>
+        `).join('') || '<p style="color: gray; font-size: 0.8rem;">No data yet.</p>';
     }
 
     function startRoundTimer() {
@@ -608,6 +770,7 @@
         els.pts.textContent = points;
         els.wins.textContent = wins;
         els.best.textContent = formatTime(bestTime);
+        els.userDisplay.textContent = currentUser ? currentUser.toUpperCase() : "LOGIN";
         
         const shopCoins = document.getElementById('shop-coins');
         if (shopCoins) shopCoins.textContent = points;
@@ -618,11 +781,21 @@
         localStorage.setItem('guess_items', JSON.stringify(items));
         localStorage.setItem('guess_timers', JSON.stringify(activeTimers));
         
+        if (currentUser && allUsers[currentUser]) {
+            allUsers[currentUser].points = points;
+            allUsers[currentUser].wins = wins;
+            allUsers[currentUser].bestTime = bestTime;
+            allUsers[currentUser].items = items;
+            localStorage.setItem('guess_all_users', JSON.stringify(allUsers));
+        }
+
+        updateLeaderboard();
+        
         const hintCost = items.cheap_hints ? 100 : 250;
         els.hintBtn.textContent = `BUY HINT (${hintCost})`;
         els.hintBtn.disabled = points < hintCost || hintUsed;
         
-        document.getElementById('reveal-btn').disabled = points < 2500;
+        document.getElementById('reveal-btn').disabled = points < 67000;
 
         // Upgrades
         if (items.double_pts) {
@@ -670,11 +843,11 @@
     }
 
     function revealNumber() {
-        if (points < 2500) return;
-        points -= 2500;
+        if (points < 67000) return;
+        points -= 67000;
         els.feedback.textContent = `REVEALED: ${secretNumber}`;
         updateUI();
-        showNotification(`NUMBER REVEALED FOR 2500 COINS`);
+        showNotification(`NUMBER REVEALED FOR 67.000 COINS`);
     }
 
     function checkGuess() {
