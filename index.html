@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GUESSED - MONOCHROME COMMAND CENTER</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #000000;
+            --panel-bg: rgba(25, 25, 25, 0.8);
+            --accent-white: #ffffff;
+            --accent-glow: rgba(255, 255, 255, 0.2);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1aa;
+            --error-red: #ff4444;
+            --success-green: #ffffff;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            height: 100vh; margin: 0;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* NAVIGATION & HUD */
+        nav {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: #000000;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+        }
+
+        .hud-left { justify-self: start; }
+        .hud-center { justify-self: center; display: flex; gap: 1rem; }
+        .hud-right { justify-self: end; }
+
+        .nav-btn {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-weight: 700;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+        }
+
+        .nav-btn.active {
+            background: var(--accent-white);
+            color: black;
+            border-color: var(--accent-white);
+        }
+
+        .nav-btn:hover:not(.active) {
+            border-color: var(--text-primary);
+            color: var(--text-primary);
+        }
+
+        /* MAIN AREA */
+        main {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .tab-content {
+            display: none;
+            width: 100%;
+            max-width: 900px;
+            height: 100%;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 2rem;
+            position: relative;
+        }
+
+        /* GAME TAB */
+        .game-main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            flex: 1;
+            justify-content: center;
+            position: relative;
+        }
+
+        .panel-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            position: absolute;
+            top: 1rem;
+            left: 0;
+            padding: 0 1rem;
+        }
+
+        .round-timer {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .give-up-btn {
+            background: transparent;
+            color: var(--error-red);
+            border: 1px solid var(--error-red);
+            padding: 0.4rem 0.8rem;
+            border-radius: var(--radius);
+            font-size: 0.7rem;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
+            opacity: 0.6;
+        }
+
+        .give-up-btn:hover {
+            opacity: 1;
+            background: var(--error-red);
+            color: black;
+        }
+
+        .bot-msg {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 2rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+            text-align: center;
+            font-style: italic;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            max-width: 400px;
+            background: #000;
+            border: 1px solid var(--accent-white);
+            color: white;
+            padding: 1rem;
+            font-size: 3rem;
+            text-align: center;
+            outline: none;
+            border-radius: var(--radius);
+            font-family: 'JetBrains Mono', monospace;
+            -moz-appearance: textfield;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .init-btn {
+            width: 100%;
+            max-width: 400px;
+            background: var(--accent-white);
+            color: black;
+            padding: 1.2rem;
+            border: none;
+            border-radius: var(--radius);
+            font-weight: 800;
+            font-size: 1.1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: 0.3s;
+        }
+
+        .init-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        .stat-badge {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.6rem 1.2rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 0.8rem;
+            font-weight: 800;
+            display: flex;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-badge span { color: white; }
+
+        .coin-badge { border-color: rgba(255, 255, 255, 0.3); }
+        .coin-badge span { font-weight: 900; }
+
+        /* GAME PASS TAB */
+        .gamepass-list {
+            display: flex;
+            gap: 1rem;
+            overflow-x: auto;
+            scroll-behavior: smooth;
+            padding: 1rem 0;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .gamepass-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scroll-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .scroll-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.2rem;
+            transition: 0.3s;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        .scroll-btn:hover {
+            background: var(--accent-white);
+            color: black;
+            border-color: var(--accent-white);
+        }
+
+        .item-card {
+            background: #000000;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            transition: 0.3s;
+            flex: 0 0 280px; /* Fixed width for horizontal items */
+        }
+
+        .upgrade-card {
+            width: 100%;
+            grid-column: 1 / -1; /* Make it full width */
+        }
+
+        .upgrade-card h3 { 
+            margin: 0; 
+            color: white; 
+            font-size: 1.1rem; 
+            font-weight: 800;
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .upgrade-card p { 
+            margin: 0.5rem 0; 
+            font-size: 0.9rem; 
+            color: var(--text-secondary); 
+        }
+
+        .buy-btn {
+            background: var(--accent-white);
+            color: black;
+            border: none;
+            padding: 1rem;
+            border-radius: var(--radius);
+            font-weight: 800;
+            cursor: pointer;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.2s;
+        }
+
+        .buy-btn:hover:not(:disabled) {
+            opacity: 0.8;
+            transform: scale(0.99);
+        }
+
+        .upgrade-btn {
+            background: #333333;
+            color: #999999;
+            width: 100%;
+        }
+
+        .upgrade-btn:hover:not(:disabled) {
+            background: #444444;
+            color: white;
+        }
+
+        .buy-btn:disabled { 
+            opacity: 0.3; 
+            cursor: not-allowed; 
+        }
+
+        /* WIN POPUP */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #000000;
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #111111;
+            border: 1px solid var(--accent-white);
+            padding: 3rem;
+            border-radius: var(--radius);
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .modal-content h2 { color: white; margin-bottom: 1.5rem; font-size: 2rem; border-bottom: 1px solid var(--accent-white); padding-bottom: 1rem; }
+        .modal-content p { font-size: 1.1rem; line-height: 1.6; color: var(--text-secondary); margin-bottom: 2rem; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        @keyframes guess-flash {
+            0% { background: rgba(255, 255, 255, 0.1); }
+            100% { background: var(--panel-bg); }
+        }
+
+        .flash-active {
+            animation: guess-flash 0.4s ease-out;
+        }
+
+        /* NOTIFICATION TOAST */
+        #notification {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: #111;
+            border: 1px solid var(--accent-white);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius);
+            font-size: 0.85rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            z-index: 2000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            pointer-events: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #notification.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="hud-left" style="display: flex; gap: 1rem;">
+        <div class="stat-badge">WINS: <span id="wins-val">0</span></div>
+        <div class="stat-badge">BEST: <span id="best-val">--:--</span></div>
+    </div>
+    <div class="hud-center">
+        <button class="nav-btn active" onclick="showTab('game')">Game</button>
+        <button class="nav-btn" onclick="showTab('gamepass')">Game Pass</button>
+        <button class="nav-btn" onclick="showTab('shop')">Shop</button>
+    </div>
+    <div class="hud-right">
+        <div class="stat-badge coin-badge">COINS: <span id="pts-val">0</span></div>
+    </div>
+</nav>
+
+<main>
+    <div id="notification">PURCHASE SUCCESSFUL</div>
+    <!-- GAME TAB -->
+    <div id="game-tab" class="tab-content active">
+        <div class="panel game-main">
+            <div class="panel-header">
+                <div class="round-timer" id="round-timer">00:00</div>
+                <button class="give-up-btn" onclick="giveUp()">Give Up</button>
+            </div>
+            <input type="number" id="guess-input" placeholder="0000">
+            <button class="init-btn" id="guess-btn">INITIATE GUESS</button>
+            <div id="feedback" style="font-weight: 800; letter-spacing: 2px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">AWAITING INPUT</div>
+        </div>
+    </div>
+
+    <!-- GAME PASS TAB -->
+    <div id="gamepass-tab" class="tab-content">
+        <div class="panel">
+            <h2 style="color: white; margin-top: 0; font-size: 1.2rem; margin-bottom: 1.5rem;">TIME REWARDS</h2>
+            <div class="scroll-wrapper">
+                <button class="scroll-btn" onclick="scrollGamePass(-300)">&#10094;</button>
+                <div class="gamepass-list" id="gamepass-list">
+                    <div class="item-card">
+                        <h3>1 MIN REWARD</h3>
+                        <p>Get 25 COINS every 24H (Requires 1m active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-1" disabled onclick="claimReward(1, 25)">CLAIM (60s)</button>
+                    </div>
+                    <div class="item-card">
+                        <h3>5 MIN REWARD</h3>
+                        <p>Get 150 COINS every 24H (Requires 5m active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-5" disabled onclick="claimReward(5, 150)">CLAIM (300s)</button>
+                    </div>
+                    <div class="item-card">
+                        <h3>10 MIN REWARD</h3>
+                        <p>Get 400 COINS every 24H (Requires 10m active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-10" disabled onclick="claimReward(10, 400)">CLAIM (600s)</button>
+                    </div>
+                    <div class="item-card">
+                        <h3>30 MIN REWARD</h3>
+                        <p>Get 1,500 COINS every 24H (Requires 30m active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-30" disabled onclick="claimReward(30, 1500)">CLAIM (1800s)</button>
+                    </div>
+                    <div class="item-card">
+                        <h3>1 HOUR REWARD</h3>
+                        <p>Get 4,000 COINS every 24H (Requires 1h active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-60" disabled onclick="claimReward(60, 4000)">CLAIM (3600s)</button>
+                    </div>
+                    <div class="item-card">
+                        <h3>6 HOUR REWARD</h3>
+                        <p>Get 25,000 COINS every 24H (Requires 6h active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-360" disabled onclick="claimReward(360, 25000)">CLAIM (21600s)</button>
+                    </div>
+                    <div class="item-card">
+                        <h3>12 HOUR REWARD</h3>
+                        <p>Get 60,000 COINS every 24H (Requires 12h active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-720" disabled onclick="claimReward(720, 60000)">CLAIM (43200s)</button>
+                    </div>
+                    <div class="item-card">
+                        <h3>24 HOUR REWARD</h3>
+                        <p>Get 150,000 COINS every 24H (Requires 24h active time).</p>
+                        <button class="buy-btn upgrade-btn" id="claim-1440" disabled onclick="claimReward(1440, 150000)">CLAIM (86400s)</button>
+                    </div>
+                </div>
+                <button class="scroll-btn" onclick="scrollGamePass(300)">&#10095;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHOP TAB -->
+    <div id="shop-tab" class="tab-content">
+        <div class="panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="color: white; margin: 0; font-size: 1.2rem;">SHOP</h2>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 800;">BALANCE: <span id="shop-coins" style="color: white;">0</span> COINS</div>
+            </div>
+            <div class="gamepass-list">
+                <div class="item-card">
+                    <h3>BUY HINT</h3>
+                    <p>Gives you a small range containing the number.</p>
+                    <button class="buy-btn" onclick="useHint()" id="hint-btn">BUY HINT (250)</button>
+                </div>
+                <div class="item-card">
+                    <h3>REVEAL NUMBER</h3>
+                    <p>Instantly shows you the hidden number.</p>
+                    <button class="buy-btn" onclick="revealNumber()" id="reveal-btn">REVEAL (2500)</button>
+                </div>
+            </div>
+
+            <h2 style="color: white; margin-top: 2.5rem; font-size: 1.2rem; margin-bottom: 1.5rem;">UPGRADES</h2>
+            <div class="gamepass-list">
+                <div class="item-card upgrade-card">
+                    <h3>DOUBLE COINS</h3>
+                    <p>Permanent x2 reward for every win.</p>
+                    <button class="buy-btn upgrade-btn" onclick="buyItem('double_pts', 2000)" id="buy-double_pts">BUY (2000)</button>
+                </div>
+                <div class="item-card upgrade-card">
+                    <h3>DISCOUNT HINTS</h3>
+                    <p>Hints permanently cost only 100 COINS.</p>
+                    <button class="buy-btn upgrade-btn" onclick="buyItem('cheap_hints', 1000)" id="buy-cheap_hints">BUY (1000)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- WIN POPUP -->
+<div class="modal" id="win-modal">
+    <div class="modal-content">
+        <h2>MISSION SUCCESS</h2>
+        <p>"You have now won. You have wasted all your time on nothing, idiot."</p>
+        <button class="init-btn" onclick="closeWinModal()">NEW ROUND</button>
+    </div>
+</div>
+
+<script>
+    let secretNumber, points = parseInt(localStorage.getItem('guess_points')) || 0;
+    let wins = parseInt(localStorage.getItem('guess_wins')) || 0;
+    let bestTime = localStorage.getItem('guess_best') ? parseInt(localStorage.getItem('guess_best')) : null;
+    let items = JSON.parse(localStorage.getItem('guess_items')) || { double_pts: false, cheap_hints: false };
+    
+    let activeTimers = JSON.parse(localStorage.getItem('guess_timers')) || { 1: 60, 5: 300, 10: 600, 30: 1800, 60: 3600, 360: 21600, 720: 43200, 1440: 86400 };
+    let hintUsed = false;
+    let roundSeconds = 0;
+    let roundInterval;
+
+    const els = {
+        guessIn: document.getElementById('guess-input'),
+        guessBtn: document.getElementById('guess-btn'),
+        feedback: document.getElementById('feedback'),
+        pts: document.getElementById('pts-val'),
+        wins: document.getElementById('wins-val'),
+        best: document.getElementById('best-val'),
+        modal: document.getElementById('win-modal'),
+        hintBtn: document.getElementById('hint-btn'),
+        roundTimer: document.getElementById('round-timer'),
+        notif: document.getElementById('notification')
+    };
+
+    function formatTime(totalSeconds) {
+        if (totalSeconds === null) return "--:--";
+        const m = Math.floor(totalSeconds / 60);
+        const s = totalSeconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function showNotification(msg) {
+        els.notif.textContent = msg;
+        els.notif.classList.add('active');
+        setTimeout(() => els.notif.classList.remove('active'), 3000);
+    }
+
+    function startRoundTimer() {
+        clearInterval(roundInterval);
+        roundSeconds = 0;
+        updateRoundTimerDisplay();
+        roundInterval = setInterval(() => {
+            roundSeconds++;
+            updateRoundTimerDisplay();
+        }, 1000);
+    }
+
+    function updateRoundTimerDisplay() {
+        const mins = Math.floor(roundSeconds / 60);
+        const secs = roundSeconds % 60;
+        els.roundTimer.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function giveUp() {
+        els.feedback.textContent = `Gave up! Number was: ${secretNumber}`;
+        setTimeout(initGame, 2000);
+    }
+
+    function showTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabName + '-tab').classList.add('active');
+        document.querySelector(`button[onclick="showTab('${tabName}')"]`).classList.add('active');
+    }
+
+    function scrollGamePass(amount) {
+        document.getElementById('gamepass-list').scrollBy({ left: amount, behavior: 'smooth' });
+    }
+
+    function updateUI() {
+        els.pts.textContent = points;
+        els.wins.textContent = wins;
+        els.best.textContent = formatTime(bestTime);
+        
+        const shopCoins = document.getElementById('shop-coins');
+        if (shopCoins) shopCoins.textContent = points;
+        
+        localStorage.setItem('guess_points', points);
+        localStorage.setItem('guess_wins', wins);
+        if (bestTime !== null) localStorage.setItem('guess_best', bestTime);
+        localStorage.setItem('guess_items', JSON.stringify(items));
+        localStorage.setItem('guess_timers', JSON.stringify(activeTimers));
+        
+        const hintCost = items.cheap_hints ? 100 : 250;
+        els.hintBtn.textContent = `BUY HINT (${hintCost})`;
+        els.hintBtn.disabled = points < hintCost || hintUsed;
+        
+        document.getElementById('reveal-btn').disabled = points < 2500;
+
+        // Upgrades
+        if (items.double_pts) {
+            document.getElementById('buy-double_pts').textContent = "OWNED";
+            document.getElementById('buy-double_pts').disabled = true;
+        } else {
+            document.getElementById('buy-double_pts').disabled = points < 2000;
+        }
+
+        if (items.cheap_hints) {
+            document.getElementById('buy-cheap_hints').textContent = "OWNED";
+            document.getElementById('buy-cheap_hints').disabled = true;
+        } else {
+            document.getElementById('buy-cheap_hints').disabled = points < 1000;
+        }
+    }
+
+    function buyItem(id, cost) {
+        if (points >= cost && !items[id]) {
+            points -= cost;
+            items[id] = true;
+            updateUI();
+            const names = { double_pts: 'DOUBLE COINS', cheap_hints: 'DISCOUNT HINTS' };
+            showNotification(`SUCCESSFULLY PURCHASED ${names[id]}`);
+        }
+    }
+
+    function claimReward(min, val) {
+        if (activeTimers[min] <= 0) {
+            points += val;
+            activeTimers[min] = 86400; // Reset to 24 hours (Daily)
+            updateUI();
+            showNotification(`SUCCESSFULLY CLAIMED ${val} COINS`);
+        }
+    }
+
+    function useHint() {
+        const cost = items.cheap_hints ? 100 : 250;
+        if (points < cost || hintUsed) return;
+        points -= cost; hintUsed = true;
+        let mi = Math.max(1, secretNumber - 250), ma = Math.min(10000, mi + 500);
+        els.feedback.textContent = `HINT: ${mi} - ${ma}`;
+        updateUI();
+        showNotification(`HINT PURCHASED FOR ${cost} COINS`);
+    }
+
+    function revealNumber() {
+        if (points < 2500) return;
+        points -= 2500;
+        els.feedback.textContent = `REVEALED: ${secretNumber}`;
+        updateUI();
+        showNotification(`NUMBER REVEALED FOR 2500 COINS`);
+    }
+
+    function checkGuess() {
+        const val = parseInt(els.guessIn.value);
+        
+        if (isNaN(val)) {
+            els.feedback.textContent = 'ENTER A NUMBER';
+            return;
+        }
+
+        if (val < 1 || val > 10000) {
+            els.feedback.textContent = 'OUT OF RANGE (1-10k)';
+            return;
+        }
+
+        // Trigger animation
+        const panel = document.querySelector('.game-main');
+        panel.classList.remove('flash-active');
+        void panel.offsetWidth; // Force reflow
+        panel.classList.add('flash-active');
+
+        if (val < secretNumber) {
+            els.feedback.textContent = 'TOO LOW';
+        } else if (val > secretNumber) {
+            els.feedback.textContent = 'TOO HIGH';
+        } else {
+            wins++;
+            const currentRoundTime = roundSeconds;
+            clearInterval(roundInterval);
+            
+            const reward = items.double_pts ? 200 : 100;
+            points += reward;
+
+            showNotification(`WINNER! +${reward} COINS`);
+
+            if (bestTime === null || currentRoundTime < bestTime) {
+                const oldRecord = bestTime;
+                bestTime = currentRoundTime;
+                if (oldRecord !== null) {
+                    showNotification(`NEW RECORD! ${formatTime(bestTime)}`);
+                }
+            }
+            
+            els.modal.style.display = 'flex';
+        }
+        els.guessIn.value = ''; updateUI();
+    }
+
+    function closeWinModal() {
+        els.modal.style.display = 'none';
+        initGame();
+    }
+
+    function initGame() {
+        secretNumber = Math.floor(Math.random() * 10000) + 1;
+        hintUsed = false;
+        els.feedback.textContent = 'READY';
+        updateUI();
+        startRoundTimer();
+        els.guessIn.focus();
+    }
+
+    // Global Timers
+    setInterval(() => {
+        Object.keys(activeTimers).forEach(m => {
+            if (activeTimers[m] > 0) {
+                activeTimers[m]--;
+                const h = Math.floor(activeTimers[m] / 3600);
+                const min = Math.floor((activeTimers[m] % 3600) / 60);
+                const s = activeTimers[m] % 60;
+                
+                let timeStr = "";
+                if (h > 0) timeStr = `${h}H ${min}M ${s}S`;
+                else if (min > 0) timeStr = `${min}M ${s}S`;
+                else timeStr = `${s}S`;
+
+                document.getElementById(`claim-${m}`).textContent = `CLAIM (${timeStr})`;
+                document.getElementById(`claim-${m}`).disabled = true;
+            } else {
+                document.getElementById(`claim-${m}`).textContent = "CLAIM NOW";
+                document.getElementById(`claim-${m}`).disabled = false;
+            }
+        });
+        localStorage.setItem('guess_timers', JSON.stringify(activeTimers));
+    }, 1000);
+
+    els.guessBtn.addEventListener('click', checkGuess);
+    els.guessIn.addEventListener('keypress', (e) => { if(e.key === 'Enter') checkGuess(); });
+
+    initGame();
+</script>
+
+</body>
+</html>
