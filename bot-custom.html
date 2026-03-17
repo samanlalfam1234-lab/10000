@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suko Shop</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        :root {
+            --bg: #e1e7ed;
+            --card-bg: #f8fbff;
+            --text-main: #24292f;
+            --text-dim: #57606a;
+            --accent: #0969da;
+            --accent-light: rgba(9, 105, 218, 0.05);
+            --border: #d0d7de;
+            --shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-theme {
+            --bg: #0a0e14;
+            --card-bg: #111821;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --accent-light: rgba(59, 130, 246, 0.15);
+            --border: rgba(255, 255, 255, 0.05);
+            --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(-45deg, #0a0e14, #111821, #05080c, #111821);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: var(--transition);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(-45deg, #e1e7ed, #f0f4f8, #dbe4ee, #e1e7ed);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            width: 100%;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+        }
+
+        /* 3D Logo Styling */
+        .logo-3d {
+            filter: drop-shadow(2px 2px 0px var(--accent)) 
+                    drop-shadow(4px 4px 8px rgba(59, 130, 246, 0.3));
+            transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
+            transition: var(--transition);
+        }
+
+        .logo-3d:hover {
+            transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.05);
+            filter: drop-shadow(2px 2px 8px rgba(59, 130, 246, 0.4));
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        nav a:hover {
+            transform: translateY(-2px);
+            background: var(--bg);
+            border-color: var(--text-main);
+            box-shadow: var(--shadow);
+            color: var(--accent);
+        }
+
+        /* Specifik styling til Staff knappen */
+        .staff-btn {
+            border-color: rgba(204, 0, 0, 0.3) !important;
+            color: #cc0000 !important;
+            font-size: 0.75rem !important;
+            font-weight: 700 !important;
+            padding: 0.6rem 1rem !important;
+            border-radius: 10px !important;
+            margin-left: 10px;
+        }
+
+        .staff-btn:hover {
+            background: #cc0000 !important;
+            color: white !important;
+            border-color: #cc0000 !important;
+        }
+
+        /* Specifik styling til Log ud */
+        .logout-nav-btn:hover {
+            background: #ff4444 !important;
+            color: white !important;
+            border-color: #ff4444 !important;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 60px 5%;
+        }
+
+        h1 { font-size: 40px; font-weight: 600; margin-bottom: 20px; }
+        .subtitle { font-size: 18px; color: var(--text-dim); margin-bottom: 60px; }
+
+        .addons-section {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            margin-top: 30px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .addon-list { display: flex; flex-direction: column; gap: 15px; }
+
+        .addon-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: var(--bg);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            gap: 12px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .addon-item:hover { transform: translateX(5px); border-color: var(--accent); }
+        .addon-item.selected { 
+            border-color: var(--accent); 
+            background: var(--accent-light); 
+            box-shadow: 0 0 0 1px var(--accent);
+            transform: scale(1.02);
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .addon-item.selected .checkbox {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .addon-item.selected .checkbox::after {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .addon-label { flex: 1; }
+        .addon-name { font-weight: 600; font-size: 14px; }
+        .addon-price { color: var(--accent); font-weight: 600; font-size: 14px; flex-shrink: 0; }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            padding: 16px 48px;
+            border-radius: 980px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            display: inline-block;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 14px var(--accent-light);
+            margin-top: 40px;
+            width: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px var(--accent-light);
+            filter: brightness(1.1);
+        }
+
+        .back-link { display: block; margin-bottom: 40px; color: var(--text-dim); text-decoration: none; font-size: 14px; }
+
+        footer { padding: 40px 5%; text-align: center; font-size: 12px; color: var(--text-dim); border-top: 1px solid var(--border); }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <header>
+        <a href="index.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
+            <div class="logo">Suko Shop</div>
+        </a>
+        <nav id="nav-menu">
+            <a href="pricing.html" data-i18n="nav-home">Store</a>
+            <a href="tos.html" data-i18n="nav-rules">Regler</a>
+            <a href="login.html" id="login-link" data-i18n="nav-login">Log ind</a>
+            <a href="profile.html" id="account-link" style="display: none;" data-i18n="nav-account">Konto</a>
+            <a href="#" id="logout-link" class="logout-nav-btn" style="display: none;" data-i18n="nav-logout">Log ud</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <a href="pricing.html" class="back-link" data-i18n="back-link">← Tilbage til Store</a>
+
+        <h1 data-i18n="title">Custom Discord Bot.</h1>
+        <p class="subtitle" data-i18n="subtitle">Skræddersy din egen Discord-bot. Startpris: 45 kr. / 6 USD.</p>
+
+        <div class="addons-section">
+            <h3 style="margin-bottom: 20px;" data-i18n="addons-title">Vælg dine bot-funktioner:</h3>
+            <div class="addon-list">
+                <div class="addon-item" onclick="toggleAddon('bot-ticket', this)">
+                    <div class="checkbox"></div>
+                    <div class="addon-label"><div class="addon-name" data-i18n="bot-ticket">Ticket System</div></div>
+                    <div class="addon-price" data-i18n="price-10">+10 DKK / 1 USD</div>
+                </div>
+                <div class="addon-item" onclick="toggleAddon('bot-welcome', this)">
+                    <div class="checkbox"></div>
+                    <div class="addon-label"><div class="addon-name" data-i18n="bot-welcome">Velkomstbesked</div></div>
+                    <div class="addon-price" data-i18n="price-5">+5 DKK / 1 USD</div>
+                </div>
+                <div class="addon-item" onclick="toggleAddon('bot-commands', this)">
+                    <div class="checkbox"></div>
+                    <div class="addon-label"><div class="addon-name" data-i18n="bot-commands">Custom Commands</div></div>
+                    <div class="addon-price" data-i18n="price-15">+15 DKK / 2 USD</div>
+                </div>
+                <div class="addon-item" onclick="toggleAddon('bot-wishes', this)">
+                    <div class="checkbox"></div>
+                    <div class="addon-label"><div class="addon-name" data-i18n="addon-wishes">Dine ønsker/du kan skrive dine ønsker på næste side</div></div>
+                    <div class="addon-price" data-i18n="price-0">+0 DKK / 0 USD</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn" onclick="submitBot()" id="submit-btn" data-i18n="submit-btn">Fortsæt til bestilling (45 DKK / 6 USD)</button>
+    </div>
+
+    <footer>
+        <p data-i18n="footer-copy">&copy; 2026 Suko Shop. Alle rettigheder forbeholdes.</p>
+    </footer>
+
+    <script>
+        // Globale variabler defineret først
+        let selectedAddons = {
+            'bot-ticket': false,
+            'bot-welcome': false,
+            'bot-commands': false,
+            'bot-wishes': false
+        };
+
+        // Supabase configuration
+        const SUPABASE_URL = 'https://avyebxjocguzailnkfzb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_GUW_t6DSac2DXbDYwq_F8A_d_tALjmJ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const translations = {
+            'en': {
+                'back-link': '← Back to Store',
+                'title': 'Custom Discord Bot.',
+                'subtitle': 'Customize your own Discord bot. Base price: 45 DKK / 6 USD.',
+                'addons-title': 'Choose your bot features:',
+                'bot-ticket': 'Ticket System',
+                'bot-welcome': 'Welcome Message',
+                'bot-commands': 'Custom Commands',
+                'addon-wishes': 'Your wishes / you can write your wishes on the next page',
+                'submit-btn': 'Continue to order',
+                'nav-home': 'Store',
+                'nav-rules': 'Rules',
+                'nav-login': 'Log In',
+                'nav-account': 'Account',
+                'nav-logout': 'Log Out',
+                'footer-copy': '© 2026 Suko Shop. All rights reserved.',
+                'price-10': '+10 DKK / 1 USD',
+                'price-5': '+5 DKK / 1 USD',
+                'price-15': '+15 DKK / 2 USD',
+                'price-0': '+0 DKK / 0 USD'
+            },
+            'da': {
+                'back-link': '← Tilbage til Store',
+                'title': 'Custom Discord Bot.',
+                'subtitle': 'Skræddersy din egen Discord-bot. Startpris: 45 kr. / 6 USD.',
+                'addons-title': 'Vælg dine bot-funktioner:',
+                'bot-ticket': 'Ticketsystem',
+                'bot-welcome': 'Velkomstbesked',
+                'bot-commands': 'Brugerdefinerede kommandoer',
+                'addon-wishes': 'Dine ønsker/du kan skrive dine ønsker på næste side',
+                'submit-btn': 'Fortsæt til bestilling',
+                'nav-home': 'Store',
+                'nav-rules': 'Regler',
+                'nav-login': 'Log ind',
+                'nav-account': 'Konto',
+                'nav-logout': 'Log ud',
+                'footer-copy': '© 2026 Suko Shop. Alle rettigheder forbeholdes.',
+                'price-10': '+10 kr. / 1 USD',
+                'price-5': '+5 kr. / 1 USD',
+                'price-15': '+15 kr. / 2 USD',
+                'price-0': '+0 kr. / 0 USD'
+            }
+        };
+
+        function toggleAddon(addon, element) {
+            selectedAddons[addon] = !selectedAddons[addon];
+            element.classList.toggle('selected');
+            updatePrice();
+        }
+
+        function updatePrice() {
+            const currentLang = localStorage.getItem('language') || 'en';
+            let totalPrice = 45;
+            if (selectedAddons['bot-ticket']) totalPrice += 10;
+            if (selectedAddons['bot-welcome']) totalPrice += 5;
+            if (selectedAddons['bot-commands']) totalPrice += 15;
+            
+            const totalUSD = Math.round(totalPrice / 7);
+            const btnText = translations[currentLang]['submit-btn'];
+            const currency = currentLang === 'da' ? 'kr.' : 'DKK';
+            document.getElementById('submit-btn').textContent = btnText + ' (' + totalPrice + ' ' + currency + ' / ' + totalUSD + ' USD)';
+        }
+
+        function updateLanguage(lang) {
+            localStorage.setItem('language', lang);
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang] && translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+            updatePrice();
+        }
+
+        function submitBot() {
+            let addonsList = [];
+            if (selectedAddons['bot-ticket']) addonsList.push('Ticket System');
+            if (selectedAddons['bot-welcome']) addonsList.push('Welcome Message');
+            if (selectedAddons['bot-commands']) addonsList.push('Custom Commands');
+            if (selectedAddons['bot-wishes']) addonsList.push('Other wishes');
+            
+            let totalPrice = 45;
+            if (selectedAddons['bot-ticket']) totalPrice += 10;
+            if (selectedAddons['bot-welcome']) totalPrice += 5;
+            if (selectedAddons['bot-commands']) totalPrice += 15;
+            
+            const totalUSD = Math.round(totalPrice / 7);
+            const finalChoice = 'Discord Bot: ' + (addonsList.length > 0 ? addonsList.join(', ') : 'Base Bot') + ' (' + totalPrice + ' DKK / ' + totalUSD + ' USD)';
+            localStorage.setItem('pendingOrder', finalChoice);
+            window.location.href = 'tickets.html';
+        }
+
+        // Auth og UI logik
+        async function checkSupabaseSession() {
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            updateUI(session);
+        }
+
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                updateUI(session);
+            } else if (event === 'SIGNED_OUT') {
+                updateUI(null);
+            }
+        });
+
+        function updateUI(session) {
+            const loginLink = document.getElementById('login-link');
+            const accountLink = document.getElementById('account-link');
+            const logoutLink = document.getElementById('logout-link');
+            const navMenu = document.getElementById('nav-menu');
+
+            const staffIds = ['1082667160461127720', '1231963657047375937', '1192535733987184680', '727130234125680641', '776463695299346442'];
+
+            if (session && session.user) {
+                localStorage.setItem('isLoggedIn', 'true');
+                const discordId = session.user.user_metadata.provider_id || session.user.user_metadata.sub;
+                localStorage.setItem('isStaff', staffIds.includes(discordId) ? 'true' : 'false');
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('isStaff');
+            }
+
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const isStaff = localStorage.getItem('isStaff') === 'true';
+            const lang = localStorage.getItem('language') || 'en';
+
+            if (isLoggedIn) {
+                if (loginLink) loginLink.style.display = 'none';
+                if (accountLink) {
+                    accountLink.style.display = 'flex';
+                    accountLink.textContent = translations[lang]['nav-account'];
+                }
+                if (logoutLink) logoutLink.style.display = 'flex';
+                if (isStaff && !document.querySelector('.staff-btn')) {
+                    const adminBtn = document.createElement('a');
+                    adminBtn.href = 'admin.html';
+                    adminBtn.className = 'staff-btn';
+                    adminBtn.textContent = 'Staff Panel';
+                    navMenu.appendChild(adminBtn);
+                }
+            } else {
+                if (loginLink) loginLink.style.display = 'flex';
+                if (accountLink) accountLink.style.display = 'none';
+                if (logoutLink) logoutLink.style.display = 'none';
+            }
+        }
+
+        // Initialisering
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        if (currentTheme === 'dark') document.body.classList.add('dark-theme');
+        
+        const savedLang = localStorage.getItem('language') || 'en';
+        updateLanguage(savedLang);
+        checkSupabaseSession();
+    </script>
+</body>
+</html>

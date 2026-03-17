@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suko Shop</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        /* Confirm Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 24px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text-main);
+        }
+
+        .modal p {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 14px 24px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            flex: 1;
+            border: none;
+            outline: none;
+        }
+
+        .modal-btn-cancel {
+            background: var(--bg);
+            color: var(--text-main);
+            border: 1px solid var(--border) !important;
+        }
+
+        .modal-btn-confirm {
+            background: #ff3b30;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-dim: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --shadow: 0 10px 30px rgba(59, 130, 246, 0.08);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --border: rgba(59, 130, 246, 0.1);
+        }
+
+        body.dark-theme {
+            --bg: #0a0e14;
+            --card-bg: #111821;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            --border: rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: var(--transition);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 60px 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .profile-wrapper {
+            width: 100%;
+            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 30px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .sidebar, .main-content {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+        }
+
+        /* 3D Logo Styling */
+        .logo-3d {
+            filter: drop-shadow(2px 2px 0px var(--accent)) 
+                    drop-shadow(4px 4px 8px rgba(59, 130, 246, 0.3));
+            transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
+            transition: var(--transition);
+        }
+
+        .logo-3d:hover {
+            transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.05);
+            filter: drop-shadow(2px 2px 8px rgba(59, 130, 246, 0.4));
+        }
+
+        /* Sidebar Styles */
+        .sidebar { 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: fit-content;
+            position: sticky;
+            top: 40px;
+        }
+
+        .profile-pic-container {
+            position: relative;
+            width: 130px;
+            margin: 0 auto 1rem;
+        }
+
+        #profile-pic {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--border);
+            background: #eee;
+            margin-bottom: 1rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .change-pic-btn {
+            display: inline-block;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            text-decoration: none;
+            background: var(--bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .change-pic-btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+            border-color: var(--accent);
+        }
+
+        #file-input { display: none; }
+
+        .sidebar h2 { 
+            font-size: 1rem; 
+            font-weight: 700; 
+            margin-top: 1rem;
+            letter-spacing: -0.01em;
+            word-break: break-all;
+            color: var(--text-main);
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sidebar p { 
+            font-size: 0.75rem; 
+            color: var(--text-dim); 
+            margin-bottom: 1.5rem; 
+            word-break: break-all;
+            opacity: 0.8;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .side-nav { text-align: left; border-top: 1px solid var(--border); padding-top: 1.5rem; }
+        .side-nav a {
+            display: block;
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            padding: 0.8rem 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+
+        .side-nav a:hover {
+            background: var(--bg);
+            color: var(--text-main);
+        }
+
+        .side-nav a.active {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .logout-btn { color: #ff4444 !important; margin-top: 1rem; }
+        .logout-btn:hover { background: rgba(255, 68, 68, 0.05) !important; }
+
+        /* Main Content Styles */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::after {
+            content: '';
+            flex-grow: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .content-section { display: none; animation: fadeIn 0.4s ease-out; }
+        .content-section.active { display: block; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 25px;
+            margin-bottom: 2rem;
+        }
+
+        .info-item {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .info-item label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .info-item span { font-size: 1rem; font-weight: 600; }
+
+        /* Settings Styles */
+        .settings-group { margin-bottom: 2rem; }
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .settings-item:last-child { border-bottom: none; }
+        .settings-item label { font-weight: 700; font-size: 0.95rem; }
+
+        input[type="text"] {
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-main);
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-save {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            margin-top: 1rem;
+            width: 100%;
+            box-shadow: 0 4px 14px var(--accent-light);
+        }
+
+        .theme-toggle-item {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 1.5rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .theme-btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .theme-btn.active {
+            border-color: var(--accent);
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .theme-btn:hover:not(.active) {
+            border-color: var(--accent);
+        }
+
+        @media (max-width: 850px) {
+            .profile-wrapper { grid-template-columns: 1fr; }
+            .sidebar { position: static; }
+        }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: var(--card-bg);
+            color: var(--text-main);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideInRight 0.3s ease-out;
+            min-width: 300px;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid #27ae60; border-color: #27ae60; }
+        .toast.error { border-left: 4px solid #ff4444; border-color: #ff4444; }
+        /* Dine Tickets New Design Styles */
+        .tickets-container-minimal {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .minimal-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--accent);
+            font-size: 0.8rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .empty-state-text {
+            color: var(--text-dim);
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+
+        .plus-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .plus-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: scale(1.1);
+        }
+
+        .ticket-item-card {
+            width: 100%;
+            background: rgba(0,0,0,0.1);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .ticket-item-card:hover {
+            border-color: var(--accent);
+            transform: translateX(5px);
+        }
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">Bekræft</h2>
+            <p id="modal-message">Er du sikker?</p>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="confirm-cancel">Annuller</button>
+                <button class="modal-btn modal-btn-confirm" id="confirm-ok">Slet</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="profile-wrapper">
+        <aside class="sidebar">
+            <a href="index.html" style="text-decoration: none; margin-bottom: 2rem; display: block;">
+                <!-- LOGO REMOVED -->
+            </a>
+            <div class="profile-pic-container">
+                <img id="profile-pic" src="https://via.placeholder.com/100" alt="Profilbillede">
+                <label for="file-input" class="change-pic-btn" data-i18n="change-pic">Skift billede</label>
+                <input type="file" id="file-input" accept="image/*">
+            </div>
+            <h2 id="side-name">Indlæser...</h2>
+            <p id="side-email">Indlæser...</p>
+            
+            <nav class="side-nav">
+                <a href="index.html" data-i18n="nav-home">← Forsiden</a>
+                <a href="#" class="nav-link active" data-target="info" data-i18n="nav-info">Brugerinfo</a>
+                <a href="#" class="nav-link" data-target="settings" data-i18n="nav-settings">Indstillinger</a>
+                <a href="#" class="nav-link" id="user-tickets-link" data-target="tickets" data-i18n="nav-tickets">Mine Tickets</a>
+                <a href="#" id="logout-btn" class="logout-btn" data-i18n="nav-logout">Log ud</a>
+                <a href="admin.html" id="admin-tickets-link" style="display: none; color: #cc0000; text-decoration: none; font-size: 0.75rem; padding: 0.6rem 1rem; font-weight: 600; border: 1px solid rgba(204,0,0,0.2); border-radius: 10px; margin-top: 0.5rem; text-align: center;">Staff Panel</a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <!-- User Info Section -->
+            <section id="info-section" class="content-section active">
+                <h3 class="section-title" data-i18n="info-title">Brugerinformation</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label data-i18n="info-name">Fulde Navn</label>
+                        <span id="full-name">Indlæser...</span>
+                    </div>
+                    <div class="info-item">
+                        <label data-i18n="info-email">E-mail</label>
+                        <span id="full-email">Indlæser...</span>
+                    </div>
+                    <div class="info-item">
+                        <label data-i18n="info-member">Medlem Siden</label>
+                        <span data-i18n="info-date">Februar 2026</span>
+                    </div>
+                </div>
+
+                <!-- Tickets Minimal View integrated into Info Section -->
+                <div class="tickets-container-minimal" style="margin-top: 4rem;">
+                    <div class="minimal-header">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+                        DINE TICKETS
+                    </div>
+                    <div id="tickets-list-minimal" style="width: 100%;">
+                        <div class="empty-state-text">Du har ingen aktive tickets.</div>
+                        <a href="tickets.html" class="plus-btn">+</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tickets Section (Hidden by default, used when clicking 'Mine Tickets' tab) -->
+            <section id="tickets-section" class="content-section">
+                <div class="tickets-container-minimal">
+                    <!-- This will be populated by the same render function -->
+                </div>
+            </section>
+
+            <!-- Admin Tickets Section -->
+            <section id="admin-tickets-section" class="content-section">
+                <h3 class="section-title" data-i18n="admin-title">Admin Panel: Alle Tickets</h3>
+                <div id="admin-tickets-list">
+                    <!-- Indlæses via JS -->
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings-section" class="content-section">
+                <h3 class="section-title" data-i18n="settings-title">Indstillinger</h3>
+                
+                <div class="settings-group">
+                    <div class="theme-toggle-item">
+                        <label data-i18n="select-theme">Vælg Tema</label>
+                        <div class="theme-btn-group">
+                            <button class="theme-btn" id="light-theme-btn" data-i18n="theme-light">
+                                Lyst
+                            </button>
+                            <button class="theme-btn" id="dark-theme-btn" data-i18n="theme-dark">
+                                Mørkt
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="theme-toggle-item" style="margin-top: 1.5rem;">
+                        <label data-i18n="select-language">Vælg Sprog</label>
+                        <div class="theme-btn-group">
+                            <button class="theme-btn" id="lang-en-btn">
+                                English
+                            </button>
+                            <button class="theme-btn" id="lang-da-btn">
+                                Dansk
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-item" style="flex-direction: column; align-items: flex-start;">
+                        <label data-i18n="change-name">Skift Navn</label>
+                        <input type="text" id="edit-name" placeholder="Indtast nyt navn">
+                    </div>
+
+                    <div class="settings-item" style="flex-direction: column; align-items: flex-start;">
+                        <label data-i18n="change-email">Skift E-mail</label>
+                        <input type="text" id="edit-email" placeholder="Indtast ny e-mail">
+                    </div>
+                </div>
+
+                <button class="btn-save" id="save-settings" data-i18n="save-btn">Gem ændringer</button>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration - ERSTAT MED DINE EGNE OPLYSNINGER
+        const SUPABASE_URL = 'https://avyebxjocguzailnkfzb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_GUW_t6DSac2DXbDYwq_F8A_d_tALjmJ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const translations = {
+            'en': {
+                'change-pic': 'Change Picture',
+                'nav-home': '← Home',
+                'nav-info': 'User Info',
+                'nav-settings': 'Settings',
+                'nav-tickets': 'My Tickets',
+                'nav-logout': 'Log Out',
+                'info-title': 'User Information',
+                'info-name': 'Full Name',
+                'info-email': 'E-mail',
+                'info-member': 'Member Since',
+                'info-date': 'February 2026',
+                'tickets-title': 'My Tickets',
+                'no-tickets': 'You have no active tickets.',
+                'create-ticket': 'Create New Ticket',
+                'admin-title': 'Admin Panel: All Tickets',
+                'settings-title': 'Settings',
+                'select-theme': 'Select Theme',
+                'theme-light': 'Light',
+                'theme-dark': 'Dark',
+                'select-language': 'Select Language',
+                'change-name': 'Change Name',
+                'change-email': 'Change E-mail',
+                'save-btn': 'Save Changes',
+                'loading': 'Loading...',
+                'ticket-id': 'ID',
+                'ticket-date': 'Date',
+                'ticket-open': 'Open Ticket',
+                'ticket-user': 'USER',
+                'ticket-chat': 'Go to chat',
+                'ticket-delete': 'Delete Ticket',
+                'settings-saved': 'Settings saved successfully!',
+                'save-error': 'Error saving settings',
+                'pic-success': 'Profile picture updated successfully!',
+                'confirm-title': 'Confirm deletion',
+                'confirm-msg': 'Are you sure you want to delete this ticket permanently?',
+                'confirm-ok': 'Delete permanently',
+                'confirm-cancel': 'Cancel'
+            },
+            'da': {
+                'change-pic': 'Skift billede',
+                'nav-home': '← Forsiden',
+                'nav-info': 'Brugerinfo',
+                'nav-settings': 'Indstillinger',
+                'nav-tickets': 'Mine Tickets',
+                'nav-logout': 'Log ud',
+                'info-title': 'Brugerinformation',
+                'info-name': 'Fulde Navn',
+                'info-email': 'E-mail',
+                'info-member': 'Medlem Siden',
+                'info-date': 'Februar 2026',
+                'tickets-title': 'Mine Tickets',
+                'no-tickets': 'Du har ingen aktive tickets.',
+                'create-ticket': 'Opret ny ticket',
+                'admin-title': 'Admin Panel: Alle Tickets',
+                'settings-title': 'Indstillinger',
+                'select-theme': 'Vælg Tema',
+                'theme-light': 'Lyst',
+                'theme-dark': 'Mørkt',
+                'select-language': 'Vælg Sprog',
+                'change-name': 'Skift Navn',
+                'change-email': 'Skift E-mail',
+                'save-btn': 'Gem ændringer',
+                'loading': 'Indlæser...',
+                'ticket-id': 'ID',
+                'ticket-date': 'Dato',
+                'ticket-open': 'Åbn Ticket',
+                'ticket-user': 'BRUGER',
+                'ticket-chat': 'Gå til chat',
+                'ticket-delete': 'Slet Ticket',
+                'settings-saved': 'Indstillinger gemt succesfuldt!',
+                'save-error': 'Fejl ved gemning af indstillinger',
+                'pic-success': 'Profilbillede opdateret succesfuldt!',
+                'confirm-title': 'Bekræft sletning',
+                'confirm-msg': 'Er du sikker på, at du vil slette denne ticket permanent?',
+                'confirm-ok': 'Slet permanent',
+                'confirm-cancel': 'Annuller'
+            }
+        };
+
+        function showConfirm() {
+            const currentLang = localStorage.getItem('language') || 'en';
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-message');
+            const okBtn = document.getElementById('confirm-ok');
+            const cancelBtn = document.getElementById('confirm-cancel');
+
+            if (!modal) return Promise.resolve(confirm('Er du sikker?'));
+
+            title.textContent = translations[currentLang]['confirm-title'] || 'Bekræft';
+            msg.textContent = translations[currentLang]['confirm-msg'] || 'Er du sikker?';
+            okBtn.textContent = translations[currentLang]['confirm-ok'] || 'OK';
+            cancelBtn.textContent = translations[currentLang]['confirm-cancel'] || 'Annuller';
+
+            modal.style.display = 'flex';
+
+            return new Promise((resolve) => {
+                const handleOk = () => {
+                    modal.style.display = 'none';
+                    cleanup();
+                    resolve(true);
+                };
+                const handleCancel = () => {
+                    modal.style.display = 'none';
+                    cleanup();
+                    resolve(false);
+                };
+                const cleanup = () => {
+                    okBtn.removeEventListener('click', handleOk);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                };
+                okBtn.addEventListener('click', handleOk);
+                cancelBtn.addEventListener('click', handleCancel);
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function updateLanguage(lang) {
+            localStorage.setItem('language', lang);
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+
+            // Update placeholders
+            const nameInput = document.getElementById('edit-name');
+            const emailInput = document.getElementById('edit-email');
+            if (lang === 'en') {
+                nameInput.placeholder = 'Enter new name';
+                emailInput.placeholder = 'Enter new e-mail';
+            } else {
+                nameInput.placeholder = 'Indtast nyt navn';
+                emailInput.placeholder = 'Indtast ny e-mail';
+            }
+
+            // Update active state
+            document.getElementById('lang-en-btn').classList.toggle('active', lang === 'en');
+            document.getElementById('lang-da-btn').classList.toggle('active', lang === 'da');
+        }
+
+        document.getElementById('lang-en-btn').addEventListener('click', () => updateLanguage('en'));
+        document.getElementById('lang-da-btn').addEventListener('click', () => updateLanguage('da'));
+
+        // Tab switching logic
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.content-section');
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = link.getAttribute('data-target');
+                
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+
+                sections.forEach(s => {
+                    s.classList.remove('active');
+                    if(s.id === target + '-section') s.classList.add('active');
+                });
+            });
+        });
+
+        // Load Initial Data
+        async function loadData() {
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            
+            // Liste over Discord IDs der har Staff adgang
+            const staffIds = [
+                '1082667160461127720',
+                '1231963657047375937',
+                '1192535733987184680',
+                '727130234125680641',
+                '776463695299346442'
+            ];
+
+            if (session && session.user) {
+                const discordId = session.user.user_metadata.provider_id || session.user.user_metadata.sub;
+                if (staffIds.includes(discordId)) {
+                    localStorage.setItem('isStaff', 'true');
+                } else {
+                    localStorage.setItem('isStaff', 'false');
+                }
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('isStaff');
+                localStorage.removeItem('userName');
+                localStorage.removeItem('userEmail');
+            }
+
+            // Skjul nuværende side i menuen
+            const currentPage = window.location.pathname.split("/").pop() || 'profile.html';
+            document.querySelectorAll('#nav-menu a').forEach(link => {
+                const linkPage = link.getAttribute('href');
+                if (linkPage === currentPage) {
+                    link.style.display = 'none';
+                }
+            });
+
+            if (!session) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            let userName = localStorage.getItem('userName') || 'User';
+            let userEmail = localStorage.getItem('userEmail') || 'not set';
+
+            if (session && session.user) {
+                userEmail = session.user.email;
+                userName = session.user.user_metadata.full_name || userEmail.split('@')[0];
+                localStorage.setItem('userName', userName);
+                localStorage.setItem('userEmail', userEmail);
+            }
+
+            const profilePic = localStorage.getItem('profilePic');
+            const theme = localStorage.getItem('theme') || 'dark';
+            if (!localStorage.getItem('theme')) localStorage.setItem('theme', 'dark');
+            const lang = localStorage.getItem('language') || 'en'; // Default to English
+            if (!localStorage.getItem('language')) localStorage.setItem('language', 'en');
+
+            updateLanguage(lang);
+
+            if (profilePic) {
+                document.getElementById('profile-pic').src = profilePic;
+            }
+
+            document.getElementById('side-name').textContent = userName;
+            document.getElementById('full-name').textContent = userName;
+            document.getElementById('edit-name').value = userName;
+            
+            // Hide email if it is the same as the name
+            if (userName.toLowerCase() === userEmail.toLowerCase()) {
+                document.getElementById('side-email').style.display = 'none';
+            } else {
+                document.getElementById('side-email').textContent = userEmail;
+                document.getElementById('side-email').style.display = 'block';
+            }
+            
+            document.getElementById('full-email').textContent = userEmail;
+            document.getElementById('edit-email').value = userEmail === 'not set' || userEmail === 'ikke angivet' ? '' : userEmail;
+
+            // Tema håndtering
+            if (theme === 'dark') {
+                document.body.classList.add('dark-theme');
+                document.getElementById('dark-theme-btn').classList.add('active');
+                document.getElementById('light-theme-btn').classList.remove('active');
+            } else {
+                document.body.classList.remove('dark-theme');
+                document.getElementById('light-theme-btn').classList.add('active');
+                document.getElementById('dark-theme-btn').classList.remove('active');
+            }
+
+            const isStaff = localStorage.getItem('isStaff') === 'true';
+            
+            // Sidebar visning baseret på rolle
+            if (isStaff) {
+                document.getElementById('admin-tickets-link').style.display = 'block';
+                document.getElementById('user-tickets-link').style.display = 'none';
+            } else {
+                document.getElementById('admin-tickets-link').style.display = 'none';
+                document.getElementById('user-tickets-link').style.display = 'block';
+            }
+
+            // Indlæs tickets (fra Supabase og localStorage og merge dem)
+            let allTickets = [];
+            let localTickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('tickets')
+                    .select('*');
+                
+                if (data && !error) {
+                    const supabaseTickets = data.map(t => ({
+                        id: t.ticket_id || t.id,
+                        ...t
+                    }));
+                    
+                    allTickets = [...supabaseTickets];
+                    localTickets.forEach(lt => {
+                        if (!allTickets.find(st => st.id === lt.id)) {
+                            allTickets.push(lt);
+                        }
+                    });
+                } else {
+                    allTickets = localTickets;
+                }
+            } catch (err) {
+                allTickets = localTickets;
+            }
+
+            const userTickets = allTickets.filter(t => t.user_email === userEmail || t.owner === userName || t.owner === undefined);
+            const ticketsList = document.getElementById('tickets-list-minimal');
+            const currentLang = localStorage.getItem('language') || 'en';
+            
+            if (userTickets.length > 0) {
+                ticketsList.innerHTML = '';
+                userTickets.forEach(t => {
+                    const div = document.createElement('a');
+                    div.href = `ticket-view.html?id=${encodeURIComponent(t.id)}`;
+                    div.className = 'ticket-item-card';
+                    
+                    const left = document.createElement('div');
+                    left.style.textAlign = 'left';
+                    
+                    const subject = document.createElement('div');
+                    subject.style.fontWeight = '700';
+                    subject.style.fontSize = '1.1rem';
+                    subject.textContent = t.subject;
+                    
+                    const date = document.createElement('div');
+                    date.style.fontSize = '0.8rem';
+                    date.style.color = 'var(--text-dim)';
+                    date.style.marginTop = '4px';
+                    date.textContent = t.date;
+                    
+                    left.appendChild(subject);
+                    left.appendChild(date);
+                    
+                    const right = document.createElement('div');
+                    const status = document.createElement('span');
+                    status.style.fontSize = '0.7rem';
+                    status.style.background = t.status === 'Lukket' ? '#ff4444' : '#27ae60';
+                    status.style.color = 'white';
+                    status.style.padding = '4px 12px';
+                    status.style.borderRadius = '20px';
+                    status.style.fontWeight = '800';
+                    status.textContent = t.status.toUpperCase();
+                    
+                    right.appendChild(status);
+                    
+                    div.appendChild(left);
+                    div.appendChild(right);
+                    ticketsList.appendChild(div);
+                });
+
+                const plus = document.createElement('a');
+                plus.href = 'tickets.html';
+                plus.className = 'plus-btn';
+                plus.style.margin = '20px auto 0';
+                plus.textContent = '+';
+                ticketsList.appendChild(plus);
+            } else {
+                ticketsList.innerHTML = `
+                    <div class="empty-state-text">${translations[currentLang]['no-tickets']}</div>
+                    <a href="tickets.html" class="plus-btn">+</a>
+                `;
+            }
+
+            // Admin-specifikke tickets (Staff visning)
+            if (isStaff) {
+                const adminList = document.getElementById('admin-tickets-list');
+                adminList.innerHTML = '';
+                if (allTickets.length === 0) {
+                    const currentLang = localStorage.getItem('language') || 'en';
+                    adminList.innerHTML = `<p style="color: var(--text-dim);">${translations[currentLang]['no-tickets']}</p>`;
+                }
+                allTickets.forEach(t => {
+                    const currentLang = localStorage.getItem('language') || 'en';
+                    const div = document.createElement('div');
+                    div.style.padding = '1.5rem';
+                    div.style.border = '1px solid var(--border)';
+                    div.style.borderRadius = '8px';
+                    div.style.marginBottom = '1.5rem';
+                    div.style.background = 'rgba(0,0,0,0.02)';
+                    
+                    const header = document.createElement('div');
+                    header.style.display = 'flex';
+                    header.style.justifyContent = 'space-between';
+                    header.style.alignItems = 'center';
+                    header.style.marginBottom = '1rem';
+                    
+                    const userSpan = document.createElement('span');
+                    userSpan.style.fontSize = '0.75rem';
+                    userSpan.style.fontWeight = '800';
+                    userSpan.style.color = 'var(--text-dim)';
+                    userSpan.textContent = `${translations[currentLang]['ticket-user']}: ${t.owner || 'Ukendt'}`;
+                    
+                    const statusSpan = document.createElement('span');
+                    statusSpan.style.fontSize = '0.8rem';
+                    statusSpan.style.background = t.status === 'Lukket' ? '#ff4444' : '#27ae60';
+                    statusSpan.style.color = 'white';
+                    statusSpan.style.padding = '4px 12px';
+                    statusSpan.style.borderRadius = '20px';
+                    statusSpan.style.fontWeight = '600';
+                    statusSpan.textContent = t.status;
+                    
+                    header.appendChild(userSpan);
+                    header.appendChild(statusSpan);
+                    
+                    const h4 = document.createElement('h4');
+                    h4.style.marginBottom = '0.5rem';
+                    h4.textContent = t.subject;
+                    
+                    const p = document.createElement('p');
+                    p.style.fontSize = '0.9rem';
+                    p.style.marginBottom = '1rem';
+                    p.style.color = 'var(--text-dim)';
+                    p.textContent = (t.message || '').substring(0, 100) + ((t.message || '').length > 100 ? '...' : '');
+                    
+                    const actions = document.createElement('div');
+                    actions.style.display = 'flex';
+                    actions.style.gap = '10px';
+                    actions.style.justifyContent = 'flex-end';
+                    
+                    const link = document.createElement('a');
+                    link.href = `ticket-view.html?id=${encodeURIComponent(t.id)}`;
+                    link.style.fontSize = '0.8rem';
+                    link.style.background = 'var(--accent)';
+                    link.style.color = 'white';
+                    link.style.textDecoration = 'none';
+                    link.style.padding = '8px 16px';
+                    link.style.borderRadius = '4px';
+                    link.style.fontWeight = '600';
+                    link.textContent = translations[currentLang]['ticket-chat'];
+                    
+                    const delBtn = document.createElement('button');
+                    delBtn.onclick = () => closeTicket(t.id);
+                    delBtn.style.fontSize = '0.8rem';
+                    delBtn.style.background = '#ff4444';
+                    delBtn.style.color = 'white';
+                    delBtn.style.border = 'none';
+                    delBtn.style.padding = '8px 16px';
+                    delBtn.style.borderRadius = '4px';
+                    delBtn.style.fontWeight = '600';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.textContent = translations[currentLang]['ticket-delete'];
+                    
+                    actions.appendChild(link);
+                    actions.appendChild(delBtn);
+                    
+                    div.appendChild(header);
+                    div.appendChild(h4);
+                    div.appendChild(p);
+                    div.appendChild(actions);
+                    adminList.appendChild(div);
+                });
+            }
+        }
+
+        // Funktion til at slette en ticket
+        async function closeTicket(id) {
+            const confirmed = await showConfirm();
+            if (confirmed) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('tickets')
+                        .delete()
+                        .match({ ticket_id: id });
+                    
+                    if (error) console.error("Error deleting from Supabase:", error);
+                } catch (err) {
+                    console.error("Supabase deletion error:", err);
+                }
+
+                // Altid slet fra localStorage også
+                const tickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+                const filteredTickets = tickets.filter(t => t.id !== id);
+                localStorage.setItem('userTickets', JSON.stringify(filteredTickets));
+                loadData(); // Opdater visning
+            }
+        }
+
+        loadData();
+
+        // Theme Toggle Buttons
+        document.getElementById('light-theme-btn').addEventListener('click', () => {
+            localStorage.setItem('theme', 'light');
+            loadData();
+        });
+
+        document.getElementById('dark-theme-btn').addEventListener('click', () => {
+            localStorage.setItem('theme', 'dark');
+            loadData();
+        });
+
+        // Save Settings
+        document.getElementById('save-settings').addEventListener('click', async () => {
+            const currentLang = localStorage.getItem('language') || 'en';
+            const newName = document.getElementById('edit-name').value;
+            const newEmail = document.getElementById('edit-email').value;
+            
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            
+            if (session) {
+                const { error } = await supabaseClient.auth.updateUser({
+                    data: { full_name: newName }
+                });
+                if (error) {
+                    showToast(translations[currentLang]['save-error'] + ': ' + error.message, 'error');
+                }
+            }
+
+            if (newName) localStorage.setItem('userName', newName);
+            if (newEmail) localStorage.setItem('userEmail', newEmail);
+            
+            loadData();
+            showToast(translations[currentLang]['settings-saved'], 'success');
+        });
+
+        // Profile Pic
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const currentLang = localStorage.getItem('language') || 'en';
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64Image = event.target.result;
+                    document.getElementById('profile-pic').src = base64Image;
+                    localStorage.setItem('profilePic', base64Image);
+                    showToast(translations[currentLang]['pic-success'], 'success');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async (e) => {
+            e.preventDefault();
+            await supabaseClient.auth.signOut();
+            localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('isStaff');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userEmail');
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>

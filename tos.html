@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suko Shop</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-dim: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --accent-light: rgba(59, 130, 246, 0.1);
+            --border: rgba(59, 130, 246, 0.1);
+            --shadow: 0 10px 30px rgba(59, 130, 246, 0.08);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-theme {
+            --bg: #0a0e14;
+            --card-bg: #111821;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --accent-light: rgba(59, 130, 246, 0.15);
+            --border: rgba(255, 255, 255, 0.05);
+            --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            background: linear-gradient(-45deg, #0a0e14, #111821, #05080c, #111821);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: var(--transition);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(-45deg, #e1e7ed, #f0f4f8, #dbe4ee, #e1e7ed);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        header {
+            padding: 1.5rem 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: var(--card-bg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+            width: 100%;
+        }
+
+        .logo {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+        }
+
+        /* 3D Logo Styling */
+        .logo-3d {
+            filter: drop-shadow(2px 2px 0px var(--accent)) 
+                    drop-shadow(4px 4px 8px rgba(59, 130, 246, 0.3));
+            transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
+            transition: var(--transition);
+        }
+
+        .logo-3d:hover {
+            transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.05);
+            filter: drop-shadow(2px 2px 8px rgba(59, 130, 246, 0.4));
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: var(--text-main);
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 0.8rem 1.5rem;
+            border-radius: 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+
+        nav a:hover {
+            transform: translateY(-2px);
+            background: var(--bg);
+            border-color: var(--text-main);
+            box-shadow: var(--shadow);
+            color: var(--accent);
+        }
+
+        /* Specifik styling til Staff knappen */
+        .staff-btn {
+            border-color: rgba(204, 0, 0, 0.3) !important;
+            color: #cc0000 !important;
+            font-size: 0.75rem !important;
+            font-weight: 700 !important;
+            padding: 0.6rem 1rem !important;
+            border-radius: 10px !important;
+            margin-left: 10px;
+        }
+
+        .staff-btn:hover {
+            background: #cc0000 !important;
+            color: white !important;
+            border-color: #cc0000 !important;
+        }
+
+        /* Specifik styling til Log ud */
+        .logout-nav-btn:hover {
+            background: #ff4444 !important;
+            color: white !important;
+            border-color: #ff4444 !important;
+        }
+
+        .container {
+            background: var(--card-bg);
+            padding: 3.5rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            max-width: 800px;
+            width: 90%;
+            margin: 60px auto;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 900;
+            margin-bottom: 2.5rem;
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+            text-align: center;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 10px;
+            display: inline-block;
+            width: 100%;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-top: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            letter-spacing: -0.02em;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .rule-item {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .rule-item:last-child {
+            border-bottom: none;
+        }
+
+        .rule-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            display: block;
+            margin-bottom: 0.4rem;
+            color: var(--text-main);
+        }
+
+        .rule-text {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        .agreement {
+            background: rgba(59, 130, 246, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent);
+            margin-top: 2rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .warning {
+            color: #ff4444;
+            font-weight: 800;
+            margin-top: 2.5rem;
+            text-align: center;
+            padding: 1.2rem;
+            border: 2px dashed #ff4444;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .back-btn {
+            display: block;
+            margin: 3rem auto 0;
+            padding: 1rem 2.5rem;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 980px;
+            font-weight: 700;
+            text-align: center;
+            width: fit-content;
+            transition: var(--transition);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            filter: brightness(1.1);
+        }
+    <style id="rain-style">
+        .rain-drop {
+            position: fixed;
+            background-color: rgba(255, 255, 255, 0.4);
+            width: 1px;
+            height: 20px;
+            top: -20px;
+            z-index: 1;
+            pointer-events: none;
+            animation: fall linear infinite;
+        }
+
+        body.dark-theme .rain-drop {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh);
+            }
+        }
+    </style>
+</head>
+<body style="display: block;">
+    <header>
+        <a href="index.html" style="display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit;">
+            <div class="logo">Suko Shop</div>
+        </a>
+        <nav id="nav-menu">
+            <a href="pricing.html" data-i18n="nav-home">Store</a>
+            <a href="tos.html" data-i18n="nav-rules">Regler</a>
+            <a href="login.html" id="login-link" data-i18n="nav-login">Log ind</a>
+            <a href="profile.html" id="account-link" style="display: none;" data-i18n="nav-account">Konto</a>
+            <a href="#" id="logout-link" class="logout-nav-btn" style="display: none;" data-i18n="nav-logout">Log ud</a>
+        </nav>
+    </header>
+    <div class="container">
+        <h1 data-i18n="page-title">Terms & Rules</h1>
+
+        <!-- Terms of Service Section -->
+        <div class="section">
+            <h2 data-i18n="tos-header">TERMS OF SERVICE</h2>
+            
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="tos-21-title">2.1 Ingen refunderinger</span>
+                <p class="rule-text" data-i18n="tos-21-text">Da det er digitale produkter, gives der ingen refundering, medmindre fejlen er på vores side teknisk.</p>
+            </div>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="tos-22-title">2.2 Brugsret</span>
+                <p class="rule-text" data-i18n="tos-22-text">Du må kun bruge de leverede til eget forbrug, og de må ikke sælges videre på nogle måde.</p>
+            </div>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="tos-23-title">2.3 Levering</span>
+                <p class="rule-text" data-i18n="tos-23-text">Lige så snart at du har betalt går vi i gang med at lave dit produkt og så derefter modtager du det.</p>
+            </div>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="tos-24-title">2.4 Ændringer</span>
+                <p class="rule-text" data-i18n="tos-24-text">Små ændringer i farver eller lignende er sådan set gratis. Større ændringer koster dog ekstra.</p>
+            </div>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="tos-25-title">2.5 Ophavsret</span>
+                <p class="rule-text" data-i18n="tos-25-text">Dette produkt må ikke ændres i samt sælges videre eller laves om i og bruges til eget forbrug til fx. Videre salg</p>
+            </div>
+
+            <div class="agreement" data-i18n="tos-agreement">
+                Ved at bestille accepterer du automatisk disse betingelser.
+            </div>
+        </div>
+
+        <!-- HER KAN DU ÆNDRE DINE REGLER (RULES) -->
+        <div class="section">
+            <h2 data-i18n="rules-header">REGLER</h2>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="rule-11-title">1.1 Respektér alle medlemmer</span>
+                <p class="rule-text" data-i18n="rule-11-text">Ingen diskrimination, had eller chikane</p>
+            </div>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="rule-12-title">1.2 Ingen spam eller reklame</span>
+                <p class="rule-text" data-i18n="rule-12-text">Du må ikke reklamere for egne produkter eller servers uden tilladelse.</p>
+            </div>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="rule-13-title">1.3 Hold dig til emnet i hver kanal</span>
+                <p class="rule-text" data-i18n="rule-13-text">Brug fx kun brug #support til support.</p>
+            </div>
+
+            <div class="rule-item">
+                <span class="rule-title" data-i18n="rule-14-title">1.4 Ingen scam eller false betalinger</span>
+                <p class="rule-text" data-i18n="rule-14-text">Det vil resultere i permanent ban.</p>
+            </div>
+        </div>
+
+        <div class="warning" data-i18n="tos-warning">
+            Overtrædelse af reglerne kan føre til advarsel eller ban.
+        </div>
+
+        <a href="index.html" class="back-btn" data-i18n="back-btn">Tilbage til forsiden</a>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://avyebxjocguzailnkfzb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_GUW_t6DSac2DXbDYwq_F8A_d_tALjmJ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Regn effekt logik
+        function createRain() {
+            const drop = document.createElement('div');
+            drop.className = 'rain-drop';
+            drop.style.left = Math.random() * 100 + 'vw';
+            drop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+            drop.style.opacity = Math.random() * 0.5;
+            document.body.appendChild(drop);
+            
+            setTimeout(() => {
+                drop.remove();
+            }, 1000);
+        }
+
+        setInterval(createRain, 50);
+
+        const translations = {
+            'en': {
+                'page-title': 'Terms & Rules',
+                'tos-header': 'TERMS OF SERVICE',
+                'tos-21-title': '2.1 No Refunds',
+                'tos-21-text': 'Since these are digital products, no refunds are given unless the error is technical on our side.',
+                'tos-22-title': '2.2 Right of Use',
+                'tos-22-text': 'You may only use the items provided for your own consumption, and they may not be resold in any way.',
+                'tos-23-title': '2.3 Delivery',
+                'tos-23-text': 'As soon as you have paid, we start making your product and then you receive it.',
+                'tos-24-title': '2.4 Changes',
+                'tos-24-text': 'Small changes in colors or similar are basically free. Larger changes, however, cost extra.',
+                'tos-25-title': '2.5 Copyright',
+                'tos-25-text': 'This product may not be modified, resold, or changed and used for own consumption for e.g. resale.',
+                'tos-agreement': 'By ordering, you automatically accept these terms.',
+                'rules-header': 'RULES',
+                'rule-11-title': '1.1 Respect all members',
+                'rule-11-text': 'No discrimination, hate, or harassment.',
+                'rule-12-title': '1.2 No spam or advertising',
+                'rule-12-text': 'You may not advertise your own products or servers without permission.',
+                'rule-13-title': '1.3 Stick to the topic in each channel',
+                'rule-13-text': 'For example, only use #support for support.',
+                'rule-14-title': '1.4 No scam or false payments',
+                'rule-14-text': 'This will result in a permanent ban.',
+                'tos-warning': 'Violation of the rules can lead to a warning or ban.',
+                'back-btn': 'Back to Home',
+                'nav-home': 'Store',
+                'nav-rules': 'Rules',
+                'nav-login': 'Log In',
+                'nav-account': 'Account',
+                'nav-logout': 'Log Out'
+            },
+            'da': {
+                'page-title': 'Terms & Regler',
+                'tos-header': 'TERMS OF SERVICE',
+                'tos-21-title': '2.1 Ingen refunderinger',
+                'tos-21-text': 'Da det er digitale produkter, gives der ingen refundering, medmindre fejlen er på vores side teknisk.',
+                'tos-22-title': '2.2 Brugsret',
+                'tos-22-text': 'Du må kun bruge de leverede til eget forbrug, og de må ikke sælges videre på nogle måde.',
+                'tos-23-title': '2.3 Levering',
+                'tos-23-text': 'Lige så snart at du har betalt går vi i gang med at lave dit produkt og så derefter modtager du det.',
+                'tos-24-title': '2.4 Ændringer',
+                'tos-24-text': 'Små ændringer i farver eller lignende er sådan set gratis. Større ændringer koster dog ekstra.',
+                'tos-25-title': '2.5 Ophavsret',
+                'tos-25-text': 'Dette produkt må ikke ændres i samt sælges videre eller laves om i og bruges til eget forbrug til fx. Videre salg',
+                'tos-agreement': 'Ved at bestille accepterer du automatisk disse betingelser.',
+                'rules-header': 'REGLER',
+                'rule-11-title': '1.1 Respektér alle medlemmer',
+                'rule-11-text': 'Ingen diskrimination, had eller chikane',
+                'rule-12-title': '1.2 Ingen spam eller reklame',
+                'rule-12-text': 'Du må ikke reklamere for egne produkter eller servers uden tilladelse.',
+                'rule-13-title': '1.3 Hold dig til emnet i hver kanal',
+                'rule-13-text': 'Brug fx kun brug #support til support.',
+                'rule-14-title': '1.4 Ingen scam eller false betalinger',
+                'rule-14-text': 'Det vil resultere i permanent ban.',
+                'tos-warning': 'Overtrædelse af reglerne kan føre til advarsel eller ban.',
+                'back-btn': 'Tilbage til forsiden',
+                'nav-home': 'Store',
+                'nav-rules': 'Regler',
+                'nav-login': 'Log ind',
+                'nav-account': 'Konto',
+                'nav-logout': 'Log ud'
+            }
+        };
+
+        function updateLanguage(lang) {
+            localStorage.setItem('language', lang);
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.textContent = translations[lang][key];
+                }
+            });
+        }
+
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark' || !currentTheme) {
+            document.body.classList.add('dark-theme');
+            if (!currentTheme) localStorage.setItem('theme', 'dark');
+        }
+
+        const savedLang = localStorage.getItem('language') || 'en';
+        updateLanguage(savedLang);
+
+        // Supabase session check
+        async function checkSupabaseSession() {
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            updateUI(session);
+        }
+
+        // Lyt efter auth ændringer
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                updateUI(session);
+            } else if (event === 'SIGNED_OUT') {
+                updateUI(null);
+            }
+        });
+
+        function updateUI(session) {
+            const loginLink = document.getElementById('login-link');
+            const accountLink = document.getElementById('account-link');
+            const logoutLink = document.getElementById('logout-link');
+            const navMenu = document.getElementById('nav-menu');
+
+            const staffIds = ['1082667160461127720', '1231963657047375937', '1192535733987184680', '727130234125680641', '776463695299346442'];
+
+            if (session && session.user) {
+                localStorage.setItem('isLoggedIn', 'true');
+                const discordId = session.user.user_metadata.provider_id || session.user.user_metadata.sub;
+                if (staffIds.includes(discordId)) {
+                    localStorage.setItem('isStaff', 'true');
+                } else {
+                    localStorage.setItem('isStaff', 'false');
+                }
+            } else {
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('isStaff');
+            }
+
+            const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+            const isStaff = localStorage.getItem('isStaff') === 'true';
+            const lang = localStorage.getItem('language') || 'en';
+
+            // Skjul nuværende side i menuen
+            const currentPage = window.location.pathname.split("/").pop() || 'tos.html';
+            document.querySelectorAll('#nav-menu a').forEach(link => {
+                const linkPage = link.getAttribute('href');
+                if (linkPage === currentPage) {
+                    link.style.display = 'none';
+                }
+            });
+
+            if (isLoggedIn) {
+                if (loginLink) loginLink.style.display = 'none';
+                if (accountLink) {
+                    accountLink.style.display = 'flex';
+                    accountLink.textContent = translations[lang]['nav-account'];
+                }
+                if (logoutLink) logoutLink.style.display = 'flex';
+
+                if (isStaff && !document.querySelector('.staff-btn')) {
+                    const adminBtn = document.createElement('a');
+                    adminBtn.href = 'admin.html';
+                    adminBtn.className = 'staff-btn';
+                    adminBtn.textContent = 'Staff Panel';
+                    navMenu.appendChild(adminBtn);
+                }
+
+                if (logoutLink) {
+                    logoutLink.onclick = async (e) => {
+                        e.preventDefault();
+                        await supabaseClient.auth.signOut();
+                        location.reload();
+                    };
+                }
+            } else {
+                if (loginLink) loginLink.style.display = 'flex';
+                if (accountLink) accountLink.style.display = 'none';
+                if (logoutLink) logoutLink.style.display = 'none';
+                const staffBtn = document.querySelector('.staff-btn');
+                if (staffBtn) staffBtn.remove();
+            }
+        }
+
+        checkSupabaseSession();
+    </script>
+</body>
+</html>

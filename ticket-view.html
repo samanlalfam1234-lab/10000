@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suko Shop</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        /* Confirm Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 24px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text-main);
+        }
+
+        .modal p {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 14px 24px;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            flex: 1;
+            border: none;
+            outline: none;
+        }
+
+        .modal-btn-cancel {
+            background: var(--bg);
+            color: var(--text-main);
+            border: 1px solid var(--border) !important;
+        }
+
+        .modal-btn-confirm {
+            background: #ff3b30;
+            color: white;
+            box-shadow: 0 4px 12px rgba(255, 59, 48, 0.2);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+
+        :root {
+            --bg: #e1e7ed;
+            --card-bg: #f8fbff;
+            --text-main: #24292f;
+            --text-dim: #57606a;
+            --accent: #0969da;
+            --accent-light: rgba(9, 105, 218, 0.05);
+            --border: #d0d7de;
+            --shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-theme {
+            --bg: #0a0e14;
+            --card-bg: #111821;
+            --text-main: #e0e6ed;
+            --text-dim: #8492a6;
+            --accent: #3b82f6;
+            --accent-light: rgba(59, 130, 246, 0.1);
+            --border: #1f2937;
+            --shadow: 0 10px 30px rgba(0,0,0,0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes messageAppear {
+            from { opacity: 0; transform: translateY(10px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: var(--transition);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px 60px;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.47059;
+            font-weight: 400;
+            letter-spacing: -0.022em;
+        }
+
+        .ticket-view-container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 900px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            animation: fadeIn 0.8s ease-out;
+            backdrop-filter: saturate(180%) blur(20px);
+        }
+
+        /* 3D Logo Styling */
+        .logo-3d {
+            filter: drop-shadow(2px 2px 0px rgba(59, 130, 246, 0.8)) 
+                    drop-shadow(4px 4px 0px rgba(59, 130, 246, 0.6))
+                    drop-shadow(6px 6px 12px rgba(0, 0, 0, 0.4));
+            transform: perspective(1000px) rotateX(10deg) rotateY(-10deg);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .logo-3d:hover {
+            transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.1);
+            filter: drop-shadow(2px 2px 0px rgba(59, 130, 246, 0.9))
+                    drop-shadow(4px 4px 16px rgba(59, 130, 246, 0.5));
+        }
+
+        .ticket-header {
+            padding: 2.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .ticket-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .ticket-header-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .ticket-id {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .status-badge {
+            font-size: 0.7rem;
+            background: #34c759;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .chat-container {
+            padding: 2.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            background: var(--bg);
+            scroll-behavior: smooth;
+        }
+
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: var(--text-dim);
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 1.25rem 1.5rem;
+            border-radius: 18px;
+            position: relative;
+            line-height: 1.6;
+            animation: messageAppear 0.3s ease-out;
+            word-wrap: break-word;
+        }
+
+        .message.customer {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent) 0%, #0052a3 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 16px rgba(0, 102, 204, 0.2);
+        }
+
+        .message.staff {
+            align-self: flex-start;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+        }
+
+        .message-meta {
+            font-size: 0.65rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.75;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .message.customer .message-meta {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .message-content {
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .chat-input-area {
+            padding: 2rem 2.5rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 12px;
+            background: var(--card-bg);
+            align-items: flex-end;
+        }
+
+        textarea {
+            flex-grow: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text-main);
+            border-radius: 14px;
+            resize: none;
+            height: 50px;
+            max-height: 120px;
+            outline: none;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        textarea::placeholder {
+            color: var(--text-dim);
+        }
+
+        textarea:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: var(--card-bg);
+        }
+
+        .send-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 4px 14px var(--accent-light);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-light);
+            filter: brightness(1.1);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background: #999;
+            box-shadow: none;
+        }
+
+        .send-btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .back-nav {
+            width: 100%;
+            max-width: 900px;
+            margin-bottom: 2rem;
+            animation: slideIn 0.6s ease-out;
+        }
+
+        .back-nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .back-nav a:hover {
+            color: var(--accent);
+        }
+
+        .access-denied-container {
+            text-align: center;
+            padding: 4rem 3rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .access-denied-container h1 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .access-denied-container p {
+            font-size: 1rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+
+        .access-denied-container a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .access-denied-container a:hover {
+            opacity: 0.8;
+        }
+
+        .ticket-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .close-ticket-btn {
+            background: #ff3b30;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.2);
+        }
+
+        .close-ticket-btn:hover {
+            background: #ff1c1c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
+        }
+
+        .close-ticket-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 600px) {
+            .ticket-view-container {
+                max-width: 100%;
+                border-radius: 12px;
+            }
+
+            .message {
+                max-width: 90% !important;
+            }
+
+            .chat-container {
+                padding: 1.5rem;
+                max-height: 400px;
+            }
+
+            .chat-input-area {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            textarea {
+                width: 100%;
+            }
+
+            .send-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">Bekræft</h2>
+            <p id="modal-message">Er du sikker?</p>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="confirm-cancel">Annuller</button>
+                <button class="modal-btn modal-btn-confirm" id="confirm-ok">Slet</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="back-nav">
+        <a href="profile.html" data-i18n="back-profile">← Tilbage til profil</a>
+    </div>
+
+    <div class="ticket-view-container" id="access-denied" style="display: none;">
+        <div class="access-denied-container">
+            <h1 data-i18n="access-denied-title">🔒 Adgang nægtet</h1>
+            <p data-i18n="access-denied-text">Du har ikke tilladelse til at se denne ticket.</p>
+            <a href="profile.html" data-i18n="back-profile">← Tilbage til profil</a>
+        </div>
+    </div>
+
+    <div class="ticket-view-container" id="main-view">
+        <div class="ticket-header">
+            <div style="display: flex; align-items: center; gap: 1.25rem;">
+                <div class="ticket-header-info">
+                    <h1 id="ticket-id-display">Ticket #0000</h1>
+                    <p id="ticket-subject" style="font-size: 0.9rem; color: var(--text-dim);"></p>
+                    <p class="ticket-id" id="ticket-meta"></p>
+                </div>
+            </div>
+            <div class="ticket-actions">
+                <span class="status-badge" id="ticket-status">Åben</span>
+                <button class="close-ticket-btn" id="close-btn" style="display: none;" data-i18n="btn-close">Luk Ticket</button>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chat-box">
+            <!-- Beskeder indlæses her -->
+        </div>
+
+        <div class="chat-input-area">
+            <textarea id="message-input" placeholder="Skriv din besked her..."></textarea>
+            <button class="send-btn" id="send-btn" data-i18n="btn-send">Send</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://avyebxjocguzailnkfzb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_GUW_t6DSac2DXbDYwq_F8A_d_tALjmJ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const translations = {
+            'en': {
+                'back-profile': '← Back to profile',
+                'access-denied-title': '🔒 Access Denied',
+                'access-denied-text': 'You do not have permission to view this ticket.',
+                'btn-close': 'Close Ticket',
+                'btn-send': 'Send',
+                'status-open': 'Open',
+                'status-closed': 'Closed',
+                'created': 'Created',
+                'placeholder-chat': 'Write your message here...',
+                'placeholder-closed': 'This ticket is closed',
+                'btn-closed': 'Closed',
+                'confirm-close': 'Are you sure you want to close this ticket? You cannot send more messages after closing.',
+                'customer': 'Customer',
+                'staff': 'Support Staff',
+                'confirm-title': 'Close Ticket',
+                'confirm-ok': 'Close Ticket',
+                'confirm-cancel': 'Cancel'
+            },
+            'da': {
+                'back-profile': '← Tilbage til profil',
+                'access-denied-title': '🔒 Adgang nægtet',
+                'access-denied-text': 'Du har ikke tilladelse til at se denne ticket.',
+                'btn-close': 'Luk Ticket',
+                'btn-send': 'Send',
+                'status-open': 'Åben',
+                'status-closed': 'Lukket',
+                'created': 'Oprettet',
+                'placeholder-chat': 'Skriv din besked her...',
+                'placeholder-closed': 'Denne ticket er lukket',
+                'btn-closed': 'Lukket',
+                'confirm-close': 'Er du sikker på at du vil lukke denne ticket? Du kan ikke skrive flere beskeder efter lukning.',
+                'customer': 'Kunde',
+                'staff': 'Support Staff',
+                'confirm-title': 'Luk Ticket',
+                'confirm-ok': 'Luk Ticket',
+                'confirm-cancel': 'Annuller'
+            }
+        };
+
+        function showConfirm() {
+            const currentLang = localStorage.getItem('language') || 'en';
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-message');
+            const okBtn = document.getElementById('confirm-ok');
+            const cancelBtn = document.getElementById('confirm-cancel');
+
+            if (!modal) return Promise.resolve(confirm('Er du sikker?'));
+
+            title.textContent = translations[currentLang]['confirm-title'] || 'Bekræft';
+            msg.textContent = translations[currentLang]['confirm-close'] || 'Er du sikker?';
+            okBtn.textContent = translations[currentLang]['confirm-ok'] || 'OK';
+            cancelBtn.textContent = translations[currentLang]['confirm-cancel'] || 'Annuller';
+
+            modal.style.display = 'flex';
+
+            return new Promise((resolve) => {
+                const handleOk = () => {
+                    modal.style.display = 'none';
+                    cleanup();
+                    resolve(true);
+                };
+                const handleCancel = () => {
+                    modal.style.display = 'none';
+                    cleanup();
+                    resolve(false);
+                };
+                const cleanup = () => {
+                    okBtn.removeEventListener('click', handleOk);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                };
+                okBtn.addEventListener('click', handleOk);
+                cancelBtn.addEventListener('click', handleCancel);
+            });
+        }
+
+        function updateLanguage(lang) {
+            localStorage.setItem('language', lang);
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+            const textarea = document.getElementById('message-input');
+            const ticketStatus = document.getElementById('ticket-status');
+            if (textarea.placeholder !== translations[lang]['placeholder-closed']) {
+                textarea.placeholder = translations[lang]['placeholder-chat'];
+            }
+        }
+
+        // Tema håndtering
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark' || !currentTheme) {
+            document.body.classList.add('dark-theme');
+            if (!currentTheme) localStorage.setItem('theme', 'dark');
+        }
+
+        const savedLang = localStorage.getItem('language') || 'en';
+        updateLanguage(savedLang);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const ticketId = urlParams.get('id');
+        let currentUser = localStorage.getItem('userName');
+        let userEmail = localStorage.getItem('userEmail');
+        let isStaff = localStorage.getItem('isStaff') === 'true';
+
+        async function updateSession() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('userEmail', session.user.email);
+                localStorage.setItem('userName', session.user.user_metadata.full_name || session.user.email.split('@')[0]);
+                
+                currentUser = localStorage.getItem('userName');
+                userEmail = localStorage.getItem('userEmail');
+                
+                const staffIds = ['1082667160461127720', '1231963657047375937', '1192535733987184680', '727130234125680641', '776463695299346442'];
+                const discordId = session.user.user_metadata.provider_id || session.user.user_metadata.sub;
+                if (staffIds.includes(discordId)) {
+                    localStorage.setItem('isStaff', 'true');
+                    isStaff = true;
+                }
+            }
+        }
+
+        async function loadTicket() {
+            await updateSession();
+            let ticket = null;
+            try {
+                const { data, error } = await supabaseClient
+                    .from('tickets')
+                    .select('*')
+                    .eq('ticket_id', ticketId)
+                    .single();
+                
+                if (data && !error) {
+                    ticket = {
+                        id: data.ticket_id || data.id,
+                        ...data
+                    };
+                }
+            } catch (err) {
+                console.error("Supabase load error:", err);
+            }
+
+            // Fallback to localStorage if not found in Supabase
+            if (!ticket) {
+                const tickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+                ticket = tickets.find(t => t.id === ticketId);
+            }
+
+            if (!ticket) {
+                document.getElementById('main-view').style.display = 'none';
+                document.getElementById('access-denied').style.display = 'block';
+                return;
+            }
+
+            // Tjek adgang (Kunde eller Staff)
+            const isOwner = ticket.user_email === userEmail || ticket.owner === currentUser || ticket.owner === undefined;
+            if (!isStaff && !isOwner) {
+                document.getElementById('main-view').style.display = 'none';
+                document.getElementById('access-denied').style.display = 'block';
+                return;
+            }
+
+            const isClosed = ticket.status === 'Lukket' || ticket.status === 'Closed';
+            const currentLang = localStorage.getItem('language') || 'en';
+
+            document.getElementById('ticket-id-display').textContent = 'Ticket ' + ticket.id;
+            document.getElementById('ticket-subject').textContent = ticket.subject;
+            document.getElementById('ticket-meta').textContent = (translations[currentLang]['created'] || 'Created') + ': ' + (ticket.date || 'N/A');
+            
+            const statusBadge = document.getElementById('ticket-status');
+            statusBadge.textContent = isClosed ? (translations[currentLang]['status-closed'] || 'Closed') : (translations[currentLang]['status-open'] || 'Open');
+            statusBadge.style.background = isClosed ? '#999' : '#34c759';
+
+            const closeBtn = document.getElementById('close-btn');
+            if (isOwner && !isClosed) {
+                closeBtn.style.display = 'block';
+            } else {
+                closeBtn.style.display = 'none';
+            }
+
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = '';
+
+            // Den oprindelige besked
+            addMessage(translations[currentLang]['customer'] || 'Customer', ticket.message, 'customer');
+
+            // Replies
+            if (ticket.replies) {
+                ticket.replies.forEach(r => {
+                    let senderName = r.sender;
+                    if (r.role === 'staff') senderName = translations[currentLang]['staff'] || 'Support Staff';
+                    if (r.role === 'customer' && (r.sender === 'Customer' || r.sender === 'Kunde')) senderName = translations[currentLang]['customer'] || 'Customer';
+                    addMessage(senderName, r.text, r.role);
+                });
+            }
+
+            // Disable chat input if ticket is closed
+            const textarea = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            textarea.disabled = isClosed;
+            sendBtn.disabled = isClosed;
+            
+            if (isClosed) {
+                textarea.placeholder = translations[currentLang]['placeholder-closed'] || 'This ticket is closed';
+                sendBtn.textContent = translations[currentLang]['btn-closed'] || 'Closed';
+            } else {
+                textarea.placeholder = translations[currentLang]['placeholder-chat'] || 'Write your message here...';
+                sendBtn.textContent = translations[currentLang]['btn-send'] || 'Send';
+            }
+        }
+
+        function addMessage(sender, text, role) {
+            const chatBox = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+            
+            const meta = document.createElement('div');
+            meta.className = 'message-meta';
+            meta.textContent = sender;
+            
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = text;
+            
+            div.appendChild(meta);
+            div.appendChild(content);
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const text = document.getElementById('message-input').value.trim();
+            if (!text) return;
+
+            let ticket = null;
+            let source = 'supabase';
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('tickets')
+                    .select('*')
+                    .eq('ticket_id', ticketId)
+                    .single();
+                
+                if (data && !error) {
+                    ticket = data;
+                } else {
+                    source = 'local';
+                }
+            } catch (err) {
+                source = 'local';
+            }
+
+            const role = isStaff ? 'staff' : 'customer';
+            const sender = isStaff ? 'Support Staff' : currentUser;
+            const newReply = {
+                sender: sender,
+                text: text,
+                role: role,
+                date: new Date().toLocaleString()
+            };
+
+            if (source === 'supabase') {
+                const replies = ticket.replies || [];
+                replies.push(newReply);
+                
+                const { error } = await supabaseClient
+                    .from('tickets')
+                    .update({ replies: replies })
+                    .eq('ticket_id', ticketId);
+                
+                if (error) console.error('Error updating replies:', error);
+            } else {
+                const tickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+                const ticketIndex = tickets.findIndex(t => t.id === ticketId);
+                if (ticketIndex !== -1) {
+                    if (!tickets[ticketIndex].replies) tickets[ticketIndex].replies = [];
+                    tickets[ticketIndex].replies.push(newReply);
+                    localStorage.setItem('userTickets', JSON.stringify(tickets));
+                }
+            }
+
+            addMessage(sender, text, role);
+            document.getElementById('message-input').value = '';
+            document.getElementById('message-input').focus();
+        }
+
+        async function closeTicket() {
+            const confirmed = await showConfirm();
+            if (!confirmed) return;
+
+            try {
+                const { error } = await supabaseClient
+                    .from('tickets')
+                    .update({ status: 'Lukket' })
+                    .eq('ticket_id', ticketId);
+                
+                if (error) {
+                    const tickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+                    const ticketIndex = tickets.findIndex(t => t.id === ticketId);
+                    if (ticketIndex !== -1) {
+                        tickets[ticketIndex].status = 'Lukket';
+                        localStorage.setItem('userTickets', JSON.stringify(tickets));
+                    }
+                }
+            } catch (err) {
+                const tickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+                const ticketIndex = tickets.findIndex(t => t.id === ticketId);
+                if (ticketIndex !== -1) {
+                    tickets[ticketIndex].status = 'Lukket';
+                    localStorage.setItem('userTickets', JSON.stringify(tickets));
+                }
+            }
+            loadTicket();
+        }
+
+        document.getElementById('send-btn').addEventListener('click', sendMessage);
+
+        document.getElementById('close-btn').addEventListener('click', closeTicket);
+
+        document.getElementById('message-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        loadTicket();
+    </script>
+</body>
+</html>
