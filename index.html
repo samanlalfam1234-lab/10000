@@ -278,6 +278,22 @@
         .leader-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-white); }
         .leader-type { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; margin-left: 0.5rem; }
 
+        .world-record-banner {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+            border: 1px solid var(--accent-white);
+            padding: 1.5rem;
+            border-radius: var(--radius);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            text-align: center;
+        }
+
+        .wr-item h4 { margin: 0; font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 2px; }
+        .wr-item div { font-size: 1.5rem; font-weight: 900; color: white; margin-top: 0.5rem; }
+        .wr-item span { font-size: 0.8rem; color: var(--text-secondary); font-weight: 400; }
+
         /* GAME PASS TAB */
         .gamepass-list {
             display: flex;
@@ -580,13 +596,13 @@
         <div class="panel">
             <div style="display: flex; gap: 2rem;">
                 <div style="flex: 1;">
-                    <h2 style="color: white; margin-top: 0; font-size: 1.2rem; margin-bottom: 1.5rem;">MOST WINS</h2>
+                    <h2 style="color: white; margin-top: 0; font-size: 1.2rem; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 2px;">World Record: Wins</h2>
                     <div id="wins-leaderboard" class="leaderboard-list">
                         <!-- Wins content -->
                     </div>
                 </div>
                 <div style="flex: 1;">
-                    <h2 style="color: white; margin-top: 0; font-size: 1.2rem; margin-bottom: 1.5rem;">FASTEST TIMES</h2>
+                    <h2 style="color: white; margin-top: 0; font-size: 1.2rem; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 2px;">World Record: Time</h2>
                     <div id="time-leaderboard" class="leaderboard-list">
                         <!-- Time content -->
                     </div>
@@ -691,12 +707,19 @@
 
         if (type === 'register') {
             if (allUsers[user]) return showNotification("USER ALREADY EXISTS");
-            allUsers[user] = { pass, wins: 0, bestTime: null, points: 0, items: { double_pts: false, cheap_hints: false } };
+            // Register with CURRENT stats so you don't lose progress
+            allUsers[user] = { 
+                pass, 
+                wins: wins, 
+                bestTime: bestTime, 
+                points: points, 
+                items: items 
+            };
             showNotification("ACCOUNT CREATED! NOW LOGIN.");
         } else {
             if (!allUsers[user] || allUsers[user].pass !== pass) return showNotification("INVALID CREDENTIALS");
             currentUser = user;
-            // Sync local stats with user profile
+            // Load user data
             points = allUsers[user].points || 0;
             wins = allUsers[user].wins || 0;
             bestTime = allUsers[user].bestTime || null;
@@ -770,7 +793,7 @@
         els.pts.textContent = points;
         els.wins.textContent = wins;
         els.best.textContent = formatTime(bestTime);
-        els.userDisplay.textContent = currentUser ? currentUser.toUpperCase() : "LOGIN";
+        els.userDisplay.textContent = currentUser ? currentUser.toUpperCase() : "GUEST";
         
         const shopCoins = document.getElementById('shop-coins');
         if (shopCoins) shopCoins.textContent = points;
@@ -781,13 +804,18 @@
         localStorage.setItem('guess_items', JSON.stringify(items));
         localStorage.setItem('guess_timers', JSON.stringify(activeTimers));
         
-        if (currentUser && allUsers[currentUser]) {
-            allUsers[currentUser].points = points;
-            allUsers[currentUser].wins = wins;
-            allUsers[currentUser].bestTime = bestTime;
-            allUsers[currentUser].items = items;
-            localStorage.setItem('guess_all_users', JSON.stringify(allUsers));
+        // Always ensure current session is in the leaderboard data as GUEST if not logged in
+        let trackUser = currentUser || "GUEST";
+        if (!allUsers[trackUser]) {
+            allUsers[trackUser] = { wins: 0, bestTime: null, points: 0, items: items };
         }
+        
+        allUsers[trackUser].points = points;
+        allUsers[trackUser].wins = wins;
+        allUsers[trackUser].bestTime = bestTime;
+        allUsers[trackUser].items = items;
+        
+        localStorage.setItem('guess_all_users', JSON.stringify(allUsers));
 
         updateLeaderboard();
         
