@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suko Shop</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-dim: #64748b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --danger: #ef4444;
+            --border: rgba(59, 130, 246, 0.1);
+            --shadow: 0 10px 30px rgba(59, 130, 246, 0.08);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.dark-theme {
+            --bg: #0a0e14;
+            --card-bg: #111821;
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --danger: #ef4444;
+            --border: rgba(255, 255, 255, 0.05);
+            --shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 102, 204, 0.2); }
+            50% { box-shadow: 0 0 0 10px rgba(0, 102, 204, 0); }
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: var(--transition);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 40px 20px 60px;
+            -webkit-font-smoothing: antialiased;
+            line-height: 1.47059;
+            font-weight: 400;
+            letter-spacing: -0.022em;
+        }
+
+        .admin-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        /* 3D Logo Styling */
+        .logo-3d {
+            filter: drop-shadow(2px 2px 0px var(--accent)) 
+                    drop-shadow(4px 4px 8px rgba(59, 130, 246, 0.3));
+            transform: perspective(1000px) rotateX(2deg) rotateY(-2deg);
+            transition: var(--transition);
+        }
+
+        .logo-3d:hover {
+            transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.05);
+            filter: drop-shadow(2px 2px 8px rgba(59, 130, 246, 0.4));
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            animation: slideIn 0.6s ease-out;
+        }
+
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #admin-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--accent);
+            padding: 0.75rem 1.5rem;
+            background: var(--accent-light);
+            border-radius: 20px;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 4rem;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            text-align: left;
+            box-shadow: var(--shadow);
+            backdrop-filter: saturate(180%) blur(20px);
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.6s ease-out both;
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-light));
+        }
+
+        .stat-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--accent);
+        }
+
+        .stat-card h3 {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .stat-card p {
+            font-size: 2.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--accent);
+        }
+
+        .ticket-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .ticket-list > :nth-child(n) {
+            animation: fadeIn 0.6s ease-out both;
+        }
+
+        .ticket-list > :nth-child(1) { animation-delay: 0.3s; }
+        .ticket-list > :nth-child(2) { animation-delay: 0.4s; }
+        .ticket-list > :nth-child(3) { animation-delay: 0.5s; }
+        .ticket-list > :nth-child(4) { animation-delay: 0.6s; }
+        .ticket-list > :nth-child(5) { animation-delay: 0.7s; }
+
+        .ticket-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 2rem;
+            align-items: start;
+            box-shadow: var(--shadow);
+            backdrop-filter: saturate(180%) blur(20px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ticket-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-light));
+        }
+
+        .ticket-item:hover {
+            transform: translateY(-6px);
+            border-color: var(--accent);
+            box-shadow: var(--shadow), 0 0 20px rgba(0, 102, 204, 0.15);
+        }
+
+        .ticket-info {
+            padding-left: 1rem;
+        }
+
+        .ticket-info h2 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .ticket-meta {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-weight: 500;
+            flex-wrap: wrap;
+        }
+
+        .ticket-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ticket-message {
+            font-size: 0.95rem;
+            line-height: 1.6;
+            padding: 1.25rem;
+            background: rgba(0, 102, 204, 0.05);
+            border-radius: 12px;
+            color: var(--text-main);
+            border: 1px solid var(--accent-light);
+            margin-top: 1rem;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-width: 140px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            font-size: 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #0052a3;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 102, 204, 0.3);
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #ff1c1c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(255, 59, 48, 0.3);
+        }
+
+        .back-link {
+            text-decoration: none;
+            color: var(--text-dim);
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        .status-badge {
+            background: #34c759;
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-dim);
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: var(--card-bg);
+            color: var(--text-main);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideInRight 0.3s ease-out;
+            min-width: 300px;
+            transition: all 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success { border-left: 4px solid #27ae60; border-color: #27ae60; }
+        .toast.error { border-left: 4px solid #ff4444; border-color: #ff4444; }
+
+        /* Modal Styling */
+        #confirmModal.modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 11000;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: var(--shadow);
+            animation: modalIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.8) translateY(20px); }
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .modal h2 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-main);
+        }
+
+        .modal p {
+            color: var(--text-dim);
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 1.1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            flex: 1;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .modal-btn-cancel {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .modal-btn-confirm {
+            background: #ff4444;
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal">
+            <h2 id="modal-title">Bekræft</h2>
+            <p id="modal-message">Er du sikker?</p>
+            <div class="modal-actions">
+                <button class="modal-btn modal-btn-cancel" id="confirm-cancel">Annuller</button>
+                <button class="modal-btn modal-btn-confirm" id="confirm-ok">Slet</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-wrapper">
+        <div id="toastContainer" class="toast-container"></div>
+        <header>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <!-- LOGO REMOVED -->
+                <div>
+                    <a href="index.html" class="back-link" data-i18n="back-link">← Tilbage til siden</a>
+                    <h1 data-i18n="staff-panel">Staff Panel</h1>
+                </div>
+            </div>
+            <a href="profile.html" id="admin-name" style="text-decoration: none; color: white;">Konto</a>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <h3 data-i18n="open-tickets">Åbne Tickets</h3>
+                <p id="total-tickets">0</p>
+            </div>
+            <div class="stat-card">
+                <h3 data-i18n="today">I dag</h3>
+                <p id="today-tickets">0</p>
+            </div>
+        </div>
+
+        <div class="ticket-list" id="admin-tickets-list">
+            <!-- Tickets indlæses her -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'https://avyebxjocguzailnkfzb.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_GUW_t6DSac2DXbDYwq_F8A_d_tALjmJ';
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(20px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function showConfirm() {
+            const currentLang = localStorage.getItem('language') || 'en';
+            const modal = document.getElementById('confirmModal');
+            const title = document.getElementById('modal-title');
+            const msg = document.getElementById('modal-message');
+            const okBtn = document.getElementById('confirm-ok');
+            const cancelBtn = document.getElementById('confirm-cancel');
+
+            title.textContent = translations[currentLang]['confirm-title'];
+            msg.textContent = translations[currentLang]['confirm-msg'];
+            okBtn.textContent = translations[currentLang]['confirm-ok'];
+            cancelBtn.textContent = translations[currentLang]['confirm-cancel'];
+
+            modal.style.display = 'flex';
+
+            return new Promise((resolve) => {
+                const handleOk = () => {
+                    modal.style.display = 'none';
+                    cleanup();
+                    resolve(true);
+                };
+                const handleCancel = () => {
+                    modal.style.display = 'none';
+                    cleanup();
+                    resolve(false);
+                };
+                const cleanup = () => {
+                    okBtn.removeEventListener('click', handleOk);
+                    cancelBtn.removeEventListener('click', handleCancel);
+                };
+                okBtn.addEventListener('click', handleOk);
+                cancelBtn.addEventListener('click', handleCancel);
+            });
+        }
+
+        const translations = {
+            'en': {
+                'confirm-title': 'Confirm deletion',
+                'confirm-msg': 'Are you sure you want to delete this ticket permanently?',
+                'confirm-ok': 'Delete permanently',
+                'confirm-cancel': 'Cancel',
+                'back-link': '← Back to site',
+                'staff-panel': 'Staff Panel',
+                'open-tickets': 'Open Tickets',
+                'today': 'Today',
+                'empty-msg': '🎉 No active tickets. Good boy!',
+                'status-open': 'OPEN',
+                'id': 'ID',
+                'user': 'User',
+                'date': 'Date',
+                'btn-view': 'Go to chat',
+                'btn-delete': 'Delete Ticket',
+                'access-denied': 'Access denied. You must be staff to see this page.',
+                'unknown': 'Unknown'
+            },
+            'da': {
+                'confirm-title': 'Bekræft sletning',
+                'confirm-msg': 'Er du sikker på at du vil slette denne ticket permanent?',
+                'confirm-ok': 'Slet permanent',
+                'confirm-cancel': 'Annuller',
+                'back-link': '← Tilbage til siden',
+                'staff-panel': 'Staff Panel',
+                'open-tickets': 'Åbne Tickets',
+                'today': 'I dag',
+                'empty-msg': '🎉 Ingen aktive tickets. God dreng!',
+                'status-open': 'ÅBEN',
+                'id': 'ID',
+                'user': 'Bruger',
+                'date': 'Dato',
+                'btn-view': 'Gå til chat',
+                'btn-delete': 'Slet Ticket',
+                'access-denied': 'Adgang nægtet. Du skal være staff for at se denne side.',
+                'unknown': 'Ukendt'
+            }
+        };
+
+        function updateLanguage(lang) {
+            localStorage.setItem('language', lang);
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (translations[lang][key]) {
+                    el.innerHTML = translations[lang][key];
+                }
+            });
+            loadAdminData(); // Reload data with new labels
+        }
+
+        async function checkStaff() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session && session.user) {
+                const staffIds = ['1082667160461127720', '1231963657047375937', '1192535733987184680', '727130234125680641', '776463695299346442'];
+                const discordId = session.user.user_metadata.provider_id || session.user.user_metadata.sub;
+                if (staffIds.includes(discordId)) {
+                    localStorage.setItem('isStaff', 'true');
+                } else {
+                    localStorage.setItem('isStaff', 'false');
+                }
+            }
+
+            if (localStorage.getItem('isStaff') !== 'true') {
+                const currentLang = localStorage.getItem('language') || 'en';
+                showToast(translations[currentLang]['access-denied'], 'error');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            } else {
+                loadAdminData();
+            }
+        }
+
+        const currentTheme = localStorage.getItem('theme');
+        if (currentTheme === 'dark' || !currentTheme) {
+            document.body.classList.add('dark-theme');
+            if (!currentTheme) localStorage.setItem('theme', 'dark');
+        }
+
+        const savedLang = localStorage.getItem('language') || 'en';
+        updateLanguage(savedLang);
+        checkStaff();
+
+        function getToday() {
+            const today = new Date();
+            return `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`;
+        }
+
+        async function loadAdminData() {
+            let supabaseTickets = [];
+            let localTickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+            
+            try {
+                const { data, error } = await supabaseClient
+                    .from('tickets')
+                    .select('*');
+                
+                if (data && !error) {
+                    supabaseTickets = data.map(t => ({
+                        id: t.ticket_id || t.id,
+                        ...t
+                    }));
+                }
+            } catch (err) {
+                console.error("Supabase load error:", err);
+            }
+
+            // Merge: Supabase takes priority if IDs match
+            let tickets = [...supabaseTickets];
+            localTickets.forEach(lt => {
+                if (!tickets.find(st => st.id === lt.id)) {
+                    tickets.push(lt);
+                }
+            });
+
+            const list = document.getElementById('admin-tickets-list');
+            const currentLang = localStorage.getItem('language') || 'en';
+            
+            document.getElementById('total-tickets').textContent = tickets.length;
+            
+            const todayTickets = tickets.filter(t => t.date === getToday()).length;
+            document.getElementById('today-tickets').textContent = todayTickets;
+
+            list.innerHTML = '';
+
+            if (tickets.length === 0) {
+                list.innerHTML = `<div class="empty-state"><p>${translations[currentLang]['empty-msg']}</p></div>`;
+                return;
+            }
+
+            const sortedTickets = [...tickets].reverse();
+
+            sortedTickets.forEach(t => {
+                const div = document.createElement('div');
+                div.className = 'ticket-item';
+                const messagePreview = (t.message || '').substring(0, 80) + ((t.message || '').length > 80 ? '...' : '');
+                
+                const ticketInfo = document.createElement('div');
+                ticketInfo.className = 'ticket-info';
+                
+                const ticketMeta = document.createElement('div');
+                ticketMeta.className = 'ticket-meta';
+                
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'status-badge';
+                statusBadge.style.background = t.status === 'Lukket' ? '#999' : '#34c759';
+                statusBadge.textContent = t.status;
+                
+                const idSpan = document.createElement('span');
+                idSpan.innerHTML = `<strong>${translations[currentLang]['id']}:</strong> ${t.id}`;
+                
+                const userSpan = document.createElement('span');
+                userSpan.innerHTML = `<strong>${translations[currentLang]['user']}:</strong> ${t.owner || translations[currentLang]['unknown']}`;
+                
+                const dateSpan = document.createElement('span');
+                dateSpan.innerHTML = `<strong>${translations[currentLang]['date']}:</strong> ${t.date}`;
+                
+                ticketMeta.appendChild(statusBadge);
+                ticketMeta.appendChild(idSpan);
+                ticketMeta.appendChild(userSpan);
+                ticketMeta.appendChild(dateSpan);
+                
+                const h2 = document.createElement('h2');
+                h2.textContent = t.subject;
+                
+                const ticketMsg = document.createElement('div');
+                ticketMsg.className = 'ticket-message';
+                ticketMsg.textContent = messagePreview;
+                
+                ticketInfo.appendChild(ticketMeta);
+                ticketInfo.appendChild(h2);
+                ticketInfo.appendChild(ticketMsg);
+                
+                const actions = document.createElement('div');
+                actions.className = 'actions';
+                
+                const viewBtn = document.createElement('a');
+                viewBtn.href = `ticket-view.html?id=${encodeURIComponent(t.id)}`;
+                viewBtn.className = 'btn btn-view';
+                viewBtn.textContent = translations[currentLang]['btn-view'];
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.onclick = () => deleteTicket(t.id);
+                deleteBtn.className = 'btn btn-delete';
+                deleteBtn.textContent = translations[currentLang]['btn-delete'];
+                
+                actions.appendChild(viewBtn);
+                actions.appendChild(deleteBtn);
+                
+                div.appendChild(ticketInfo);
+                div.appendChild(actions);
+                list.appendChild(div);
+            });
+        }
+
+        /* 
+        SQL for at oprette tickets tabellen i Supabase:
+        
+        create table tickets (
+          id uuid default uuid_generate_v4() primary key,
+          ticket_id text not null,
+          subject text not null,
+          message text not null,
+          date text not null,
+          status text default 'Åben',
+          owner text not null,
+          user_email text,
+          replies jsonb default '[]'::jsonb,
+          created_at timestamp with time zone default timezone('utc'::text, now()) not null
+        );
+
+        -- Giv alle adgang til at læse/skrive (Husk at opsætte RLS hvis det skal være sikkert)
+        alter table tickets enable row level security;
+        create policy "Giv adgang til alt" on tickets for all using (true);
+        */
+
+        async function deleteTicket(id) {
+            const confirmed = await showConfirm();
+            if (!confirmed) return;
+            
+            try {
+                const { error } = await supabaseClient
+                    .from('tickets')
+                    .delete()
+                    .match({ ticket_id: id });
+
+                if (error) console.error("Supabase delete error:", error);
+            } catch (err) {
+                console.error("Supabase delete exception:", err);
+            }
+
+            // Always also delete from localStorage
+            let tickets = JSON.parse(localStorage.getItem('userTickets') || '[]');
+            tickets = tickets.filter(t => t.id !== id);
+            localStorage.setItem('userTickets', JSON.stringify(tickets));
+            
+            loadAdminData();
+        }
+    </script>
+</body>
+</html>
