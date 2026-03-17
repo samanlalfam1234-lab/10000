@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GUESSED - MONOCHROME COMMAND CENTER</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
 
@@ -170,20 +171,33 @@
 
         #guess-input {
             width: 100%;
-            max-width: 400px;
+            max-width: 500px;
             background: #000;
             border: 2px solid #222;
             color: white;
-            padding: 1.5rem;
-            font-size: 4rem;
+            padding: 2rem;
+            font-size: 6rem;
             text-align: center;
             outline: none;
             border-radius: var(--radius);
             font-family: 'JetBrains Mono', monospace;
+            margin: 2rem 0;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.05);
         }
 
         #guess-input:focus {
             border-color: #444;
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.1);
+        }
+
+        /* HIDE AUTOFILL */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active  {
+            -webkit-box-shadow: 0 0 0 100px #000 inset !important;
+            -webkit-text-fill-color: white !important;
+            transition: background-color 5000s ease-in-out 0s;
         }
 
         input::-webkit-outer-spin-button,
@@ -497,7 +511,7 @@
                 <div class="round-timer" id="round-timer">00:00</div>
                 <button class="give-up-btn" onclick="giveUp()">Give Up</button>
             </div>
-            <input type="text" id="guess-input" placeholder="0000" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]*" spellcheck="false">
+            <input type="text" id="guess-input" placeholder="0000" autocomplete="off" inputmode="numeric" pattern="[0-9]*" spellcheck="false" data-lpignore="true">
             <button class="init-btn" id="guess-btn">INITIATE GUESS</button>
             <div id="feedback" style="font-weight: 800; letter-spacing: 2px; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">AWAITING INPUT</div>
         </div>
@@ -639,17 +653,34 @@
 </div>
 
 <script>
-    let points = parseInt(localStorage.getItem('guess_points')) || 0;
+    // SUPABASE CONFIGURATION
+    const SUPABASE_URL = "https://kjrawegaosabravbzvlk.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_1rPq0hjqb_tIf6wtz2EPVw_mlp9YMf3";
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let coins = parseInt(localStorage.getItem('guess_coins')) || 0;
     let wins = parseInt(localStorage.getItem('guess_wins')) || 0;
     let bestTime = localStorage.getItem('guess_best') ? parseInt(localStorage.getItem('guess_best')) : null;
     let items = JSON.parse(localStorage.getItem('guess_items')) || { double_pts: false, cheap_hints: false };
     
-    let activeTimers = JSON.parse(localStorage.getItem('guess_timers')) || { 1: 60, 5: 300, 10: 600, 30: 1800, 60: 3600, 360: 21600, 720: 43200, 1440: 86400 };
+    // Reward cooldowns (Last claimed timestamp)
+    let rewardCooldowns = JSON.parse(localStorage.getItem('guess_rewards')) || {};
+    const rewardTiers = [
+        { id: 1, val: 25, label: "1 MIN" },
+        { id: 5, val: 150, label: "5 MIN" },
+        { id: 10, val: 400, label: "10 MIN" },
+        { id: 30, val: 1500, label: "30 MIN" },
+        { id: 60, val: 4000, label: "1 HOUR" },
+        { id: 360, val: 25000, label: "6 HOUR" },
+        { id: 720, val: 60000, label: "12 HOUR" },
+        { id: 1440, val: 150000, label: "24 HOUR" }
+    ];
+
     let hintUsed = false;
     let roundSeconds = 0;
     let roundInterval;
-    let currentUser = localStorage.getItem('guess_user') || null;
-    let allUsers = JSON.parse(localStorage.getItem('guess_all_users')) || {};
+    let currentUser = null;
+    let session = null;
 
     const els = {
         guessIn: document.getElementById('guess-input'),
@@ -665,11 +696,12 @@
         roundTimer: document.getElementById('round-timer'),
         notif: document.getElementById('notification'),
         winsLB: document.getElementById('wins-leaderboard'),
-        timeLB: document.getElementById('time-leaderboard')
+        timeLB: document.getElementById('time-leaderboard'),
+        gamepassList: document.getElementById('gamepass-list')
     };
 
     function formatTime(totalSeconds) {
-        if (totalSeconds === null) return "--:--";
+        if (totalSeconds === null || totalSeconds === undefined) return "--:--";
         const m = Math.floor(totalSeconds / 60);
         const s = totalSeconds % 60;
         return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -681,13 +713,25 @@
         setTimeout(() => els.notif.classList.remove('active'), 3000);
     }
 
+    async function checkSession() {
+        const { data } = await _supabase.auth.getSession();
+        if (data.session) {
+            session = data.session;
+            currentUser = session.user.user_metadata.username;
+            await loadProfile();
+        }
+        updateUI();
+    }
+
     function showAuth() {
-        if (currentUser) {
+        if (session) {
             if (confirm(`Logged in as ${currentUser}. Logout?`)) {
-                currentUser = null;
-                localStorage.removeItem('guess_user');
-                showNotification("LOGGED OUT");
-                updateUI();
+                _supabase.auth.signOut().then(() => {
+                    session = null;
+                    currentUser = null;
+                    showNotification("LOGGED OUT");
+                    updateUI();
+                });
             }
             return;
         }
@@ -698,63 +742,90 @@
         els.authModal.style.display = 'none';
     }
 
-    function handleAuth(type) {
+    async function handleAuth(type) {
         const user = document.getElementById('auth-user').value.trim();
         const pass = document.getElementById('auth-pass').value.trim();
 
         if (user.length < 3) return showNotification("USERNAME TOO SHORT");
         if (pass.length < 6) return showNotification("PASSWORD MIN. 6 CHARACTERS");
 
+        // Use email-like format for Supabase Auth
+        const email = `${user.toLowerCase()}@guessed.game`;
+
         if (type === 'register') {
-            if (allUsers[user]) return showNotification("USER ALREADY EXISTS");
-            // Register with CURRENT stats so you don't lose progress
-            allUsers[user] = { 
-                pass, 
-                wins: wins, 
-                bestTime: bestTime, 
-                points: points, 
-                items: items 
-            };
+            const { error } = await _supabase.auth.signUp({
+                email, password: pass,
+                options: { data: { username: user } }
+            });
+            if (error) return showNotification(error.message.toUpperCase());
             showNotification("ACCOUNT CREATED! NOW LOGIN.");
         } else {
-            if (!allUsers[user] || allUsers[user].pass !== pass) return showNotification("INVALID CREDENTIALS");
-            currentUser = user;
-            // Load user data
-            points = allUsers[user].points || 0;
-            wins = allUsers[user].wins || 0;
-            bestTime = allUsers[user].bestTime || null;
-            items = allUsers[user].items || { double_pts: false, cheap_hints: false };
+            const { data, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+            if (error) return showNotification(error.message.toUpperCase());
             
-            localStorage.setItem('guess_user', user);
+            session = data.session;
+            currentUser = user;
+            await loadProfile();
             showNotification(`WELCOME BACK, ${user.toUpperCase()}`);
             closeAuth();
-            updateUI();
         }
-        localStorage.setItem('guess_all_users', JSON.stringify(allUsers));
     }
 
-    function updateLeaderboard() {
-        const usersArr = Object.entries(allUsers).map(([name, data]) => ({ name, ...data }));
-        
-        // Wins Leaderboard - Top 3, Min 1 Win
-        const topWins = [...usersArr].filter(u => u.wins > 0).sort((a, b) => b.wins - a.wins).slice(0, 3);
-        els.winsLB.innerHTML = topWins.map((u, i) => `
-            <div class="leader-item">
-                <span class="leader-rank">#${i + 1}</span>
-                <span class="leader-name">${u.name}</span>
-                <span class="leader-val">${u.wins} <span class="leader-type">WINS</span></span>
-            </div>
-        `).join('') || '<p style="color: gray; font-size: 0.8rem;">No data yet.</p>';
+    async function loadProfile() {
+        if (!session) return;
+        const { data, error } = await _supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        if (data) {
+            coins = data.coins || 0;
+            wins = data.wins || 0;
+            bestTime = data.best_time;
+            items = data.items || { double_pts: false, cheap_hints: false };
+            rewardCooldowns = data.rewards || {};
+        } else {
+            // First time login - initialize profile
+            await saveProfile();
+        }
+        updateUI();
+    }
 
-        // Time Leaderboard - Top 3, Min 1 Win
-        const topTime = [...usersArr].filter(u => u.bestTime !== null && u.wins > 0).sort((a, b) => a.bestTime - b.bestTime).slice(0, 3);
-        els.timeLB.innerHTML = topTime.map((u, i) => `
-            <div class="leader-item">
-                <span class="leader-rank">#${i + 1}</span>
-                <span class="leader-name">${u.name}</span>
-                <span class="leader-val">${formatTime(u.bestTime)} <span class="leader-type">SEC</span></span>
-            </div>
-        `).join('') || '<p style="color: gray; font-size: 0.8rem;">No data yet.</p>';
+    async function saveProfile() {
+        if (!session) return;
+        const profile = {
+            id: session.user.id,
+            username: currentUser,
+            coins: coins,
+            wins: wins,
+            best_time: bestTime,
+            items: items,
+            rewards: rewardCooldowns,
+            updated_at: new Date()
+        };
+        await _supabase.from('profiles').upsert(profile);
+    }
+
+    async function updateLeaderboard() {
+        // Fetch top wins
+        const { data: topWins } = await _supabase.from('profiles').select('username, wins').gt('wins', 0).order('wins', { ascending: false }).limit(3);
+        if (topWins) {
+            els.winsLB.innerHTML = topWins.map((u, i) => `
+                <div class="leader-item">
+                    <span class="leader-rank">#${i + 1}</span>
+                    <span class="leader-name">${u.username}</span>
+                    <span class="leader-val">${u.wins} <span class="leader-type">WINS</span></span>
+                </div>
+            `).join('') || '<p style="color: gray; font-size: 0.8rem;">No data yet.</p>';
+        }
+
+        // Fetch top times
+        const { data: topTime } = await _supabase.from('profiles').select('username, best_time').not('best_time', 'is', null).gt('wins', 0).order('best_time', { ascending: true }).limit(3);
+        if (topTime) {
+            els.timeLB.innerHTML = topTime.map((u, i) => `
+                <div class="leader-item">
+                    <span class="leader-rank">#${i + 1}</span>
+                    <span class="leader-name">${u.username}</span>
+                    <span class="leader-val">${formatTime(u.best_time)} <span class="leader-type">SEC</span></span>
+                </div>
+            `).join('') || '<p style="color: gray; font-size: 0.8rem;">No data yet.</p>';
+        }
     }
 
     function startRoundTimer() {
@@ -790,91 +861,113 @@
     }
 
     function updateUI() {
-        els.pts.textContent = points;
+        els.pts.textContent = coins;
         els.wins.textContent = wins;
         els.best.textContent = formatTime(bestTime);
         els.userDisplay.textContent = currentUser ? currentUser.toUpperCase() : "GUEST";
         
         const shopCoins = document.getElementById('shop-coins');
-        if (shopCoins) shopCoins.textContent = points;
+        if (shopCoins) shopCoins.textContent = coins;
         
-        localStorage.setItem('guess_points', points);
+        localStorage.setItem('guess_coins', coins);
         localStorage.setItem('guess_wins', wins);
         if (bestTime !== null) localStorage.setItem('guess_best', bestTime);
         localStorage.setItem('guess_items', JSON.stringify(items));
-        localStorage.setItem('guess_timers', JSON.stringify(activeTimers));
+        localStorage.setItem('guess_rewards', JSON.stringify(rewardCooldowns));
         
-        // Always ensure current session is in the leaderboard data as GUEST if not logged in
-        let trackUser = currentUser || "GUEST";
-        if (!allUsers[trackUser]) {
-            allUsers[trackUser] = { wins: 0, bestTime: null, points: 0, items: items };
-        }
-        
-        allUsers[trackUser].points = points;
-        allUsers[trackUser].wins = wins;
-        allUsers[trackUser].bestTime = bestTime;
-        allUsers[trackUser].items = items;
-        
-        localStorage.setItem('guess_all_users', JSON.stringify(allUsers));
-
         updateLeaderboard();
+        renderGamePass();
         
         const hintCost = items.cheap_hints ? 100 : 250;
         els.hintBtn.textContent = `BUY HINT (${hintCost})`;
-        els.hintBtn.disabled = points < hintCost || hintUsed;
+        els.hintBtn.disabled = coins < hintCost || hintUsed;
         
-        document.getElementById('reveal-btn').disabled = points < 67000;
+        document.getElementById('reveal-btn').disabled = coins < 67000;
 
         // Upgrades
         if (items.double_pts) {
             document.getElementById('buy-double_pts').textContent = "OWNED";
             document.getElementById('buy-double_pts').disabled = true;
         } else {
-            document.getElementById('buy-double_pts').disabled = points < 2000;
+            document.getElementById('buy-double_pts').disabled = coins < 2000;
         }
 
         if (items.cheap_hints) {
             document.getElementById('buy-cheap_hints').textContent = "OWNED";
             document.getElementById('buy-cheap_hints').disabled = true;
         } else {
-            document.getElementById('buy-cheap_hints').disabled = points < 1000;
+            document.getElementById('buy-cheap_hints').disabled = coins < 1000;
+        }
+    }
+
+    function renderGamePass() {
+        const now = Date.now();
+        els.gamepassList.innerHTML = rewardTiers.map(t => {
+            const lastClaim = rewardCooldowns[t.id] || 0;
+            const remaining = Math.max(0, 86400000 - (now - lastClaim));
+            const canClaim = remaining <= 0;
+            
+            let btnLabel = canClaim ? "CLAIM" : formatRemaining(remaining);
+            
+            return `
+                <div class="reward-card">
+                    <h3>${t.label} REWARD</h3>
+                    <p>Get ${t.val.toLocaleString()} COINS every 24 hours.</p>
+                    <button onclick="claimReward(${t.id}, ${t.val})" ${canClaim ? '' : 'disabled'}>
+                        ${btnLabel}
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function formatRemaining(ms) {
+        const h = Math.floor(ms / 3600000);
+        const m = Math.floor((ms % 3600000) / 60000);
+        const s = Math.floor((ms % 60000) / 1000);
+        return `${h}H ${m}M ${s}S`;
+    }
+
+    function claimReward(id, val) {
+        const now = Date.now();
+        const lastClaim = rewardCooldowns[id] || 0;
+        if (now - lastClaim >= 86400000) {
+            coins += val;
+            rewardCooldowns[id] = now;
+            updateUI();
+            saveProfile();
+            showNotification(`SUCCESSFULLY CLAIMED ${val} COINS`);
         }
     }
 
     function buyItem(id, cost) {
-        if (points >= cost && !items[id]) {
-            points -= cost;
+        if (coins >= cost && !items[id]) {
+            coins -= cost;
             items[id] = true;
             updateUI();
+            saveProfile();
             const names = { double_pts: 'DOUBLE COINS', cheap_hints: 'DISCOUNT HINTS' };
             showNotification(`SUCCESSFULLY PURCHASED ${names[id]}`);
         }
     }
 
-    function claimReward(min, val) {
-        if (activeTimers[min] <= 0) {
-            points += val;
-            activeTimers[min] = 86400; // Reset to 24 hours (Daily)
-            updateUI();
-            showNotification(`SUCCESSFULLY CLAIMED ${val} COINS`);
-        }
-    }
-
     function useHint() {
         const cost = items.cheap_hints ? 100 : 250;
-        if (points < cost || hintUsed) return;
-        points -= cost; hintUsed = true;
+        if (coins < cost || hintUsed) return;
+        coins -= cost; hintUsed = true;
         let mi = Math.max(1, secretNumber - 250), ma = Math.min(10000, mi + 500);
         els.feedback.textContent = `HINT: ${mi} - ${ma}`;
         updateUI();
+        saveProfile();
         showNotification(`HINT PURCHASED FOR ${cost} COINS`);
     }
 
     function revealNumber() {
-        if (points < 67000) return;
-        points -= 67000;
+        if (coins < 67000) return;
+        coins -= 67000;
         els.feedback.textContent = `REVEALED: ${secretNumber}`;
         updateUI();
+        saveProfile();
         showNotification(`NUMBER REVEALED FOR 67.000 COINS`);
     }
 
@@ -907,7 +1000,7 @@
             clearInterval(roundInterval);
             
             const reward = items.double_pts ? 200 : 100;
-            points += reward;
+            coins += reward;
 
             showNotification(`WINNER! +${reward} COINS`);
 
@@ -916,9 +1009,12 @@
                 bestTime = currentRoundTime;
                 if (oldRecord !== null) {
                     showNotification(`NEW RECORD! ${formatTime(bestTime)}`);
+                } else {
+                    showNotification(`FIRST RECORD SET!`);
                 }
             }
             
+            saveProfile();
             els.modal.style.display = 'flex';
         }
         els.guessIn.value = ''; updateUI();
@@ -938,34 +1034,16 @@
         els.guessIn.focus();
     }
 
-    // Global Timers
-    setInterval(() => {
-        Object.keys(activeTimers).forEach(m => {
-            if (activeTimers[m] > 0) {
-                activeTimers[m]--;
-                const h = Math.floor(activeTimers[m] / 3600);
-                const min = Math.floor((activeTimers[m] % 3600) / 60);
-                const s = activeTimers[m] % 60;
-                
-                let timeStr = "";
-                if (h > 0) timeStr = `${h}H ${min}M ${s}S`;
-                else if (min > 0) timeStr = `${min}M ${s}S`;
-                else timeStr = `${s}S`;
+    // Global Refresh for Reward Timers
+    setInterval(renderGamePass, 1000);
 
-                document.getElementById(`claim-${m}`).textContent = `CLAIM (${timeStr})`;
-                document.getElementById(`claim-${m}`).disabled = true;
-            } else {
-                document.getElementById(`claim-${m}`).textContent = "CLAIM NOW";
-                document.getElementById(`claim-${m}`).disabled = false;
-            }
-        });
-        localStorage.setItem('guess_timers', JSON.stringify(activeTimers));
-    }, 1000);
-
-    els.guessBtn.addEventListener('click', checkGuess);
-    els.guessIn.addEventListener('keypress', (e) => { if(e.key === 'Enter') checkGuess(); });
-
+    // Startup
+    checkSession();
     initGame();
+
+    // Event Listeners
+    els.guessBtn.onclick = checkGuess;
+    els.guessIn.onkeydown = (e) => { if (e.key === 'Enter') checkGuess(); };
 </script>
 
 </body>
